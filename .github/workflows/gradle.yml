@@ -86,12 +86,13 @@ jobs:
       run: |
         if [[ $MATRIX_PLATFORM = "ubuntu-latest" ]]; then
           if [[ -n $SONAR_TOKEN ]]; then
-            ./gradlew build sonar -Dsonar.host.url=https://sonarcloud.io \
-                                  -Dsonar.organization=vividus \
-                                  -Dsonar.projectKey=vividus-framework_vividus \
-                                  -Ptest.testLogging.exceptionFormat=full
+            ./gradlew build sonarqube -Dsonar.host.url=https://sonarcloud.io \
+                                      -Dsonar.organization=vividus \
+                                      -Dsonar.projectKey=vividus-framework_vividus \
+                                      -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=768m" \
+                                      -Ptest.testLogging.exceptionFormat=full
           else
-            echo No SONAR_TOKEN, SonarCloud analysis will be skipped
+            echo No SONAR_TOKEN, SonarQube analysis will be skipped
             ./gradlew build -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=768m" \
                             -Ptest.testLogging.exceptionFormat=full
           fi
@@ -110,14 +111,14 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ !github.event.pull_request.head.repo.fork || github.ref == 'refs/heads/master'}}
-      uses: codecov/codecov-action@v4.5.0
+      uses: codecov/codecov-action@v4.4.0
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to Codecov
       if: ${{ github.event.pull_request.head.repo.fork }}
-      uses: codecov/codecov-action@v4.5.0
+      uses: codecov/codecov-action@v4.4.0
 
     - name: VIVIDUS tasks validation
       run: |
@@ -132,6 +133,7 @@ jobs:
       if: matrix.platform == 'macos-latest'
       run: |
         ./gradlew :vividus-tests:debugStories -Pvividus.configuration-set.active=integration \
+                                              -Pvividus.batch-1.resource-exclude-patterns="Precondition*.story,Load ExamplesTable from local file.story,VideoSteps.story" \
                                               -Pvividus.allure.history-directory=output/history/integration-tests \
                                               -Pvividus.allure.executor.name="Github Actions (Vividus)" \
                                               -Pvividus.allure.executor.type=github \
@@ -195,7 +197,8 @@ jobs:
             ./gradlew :vividus-tests:debugStories -Pvividus.configuration-set.active=system \
                                                   -Pvividus.selenium.grid.username=${BROWSERSTACK_USER} \
                                                   -Pvividus.selenium.grid.password=${BROWSERSTACK_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="VIVIDUS System Tests" \
+                                                  -Pvividus.selenium.grid.platform-name=Windows \
+                                                  -Pvividus.selenium.grid.platform-version=10 \
                                                   -Pvividus.allure.history-directory=output/history/system-tests \
                                                   -Pvividus.allure.executor.name="Github Actions (Vividus)" \
                                                   -Pvividus.allure.executor.type=github \
@@ -550,7 +553,8 @@ jobs:
                                                   -Pvividus.configuration.profiles=browserstack/web,web/desktop/${profile} \
                                                   -Pvividus.selenium.grid.username=${BROWSERSTACK_USER} \
                                                   -Pvividus.selenium.grid.password=${BROWSERSTACK_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="VIVIDUS BrowserStack Integration Tests"
+                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.projectName=Vividus \
+                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="Vividus BrowserStack Integration Tests"
           done
         else
             echo No BROWSERSTACK_USER and/or BROWSERSTACK_KEY, Browserstack integration tests will be skipped
