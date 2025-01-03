@@ -109,6 +109,13 @@ jobs:
         name: Unit and Integration Tests - Reports - ${{ matrix.platform }}
         path: vividus/output/reports/tests
 
+    - name: Publish unit and integration tests reports for Kafka
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kafka Unit and Integration Tests - Reports - ${{ matrix.platform }}
+        path: vividus-plugin-kafka/output/reports/tests
+
     - name: Upload coverage to Codecov
       if: ${{ !github.event.pull_request.head.repo.fork || github.ref == 'refs/heads/master'}}
       uses: codecov/codecov-action@v4.5.0
