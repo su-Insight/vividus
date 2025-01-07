@@ -4,14 +4,14 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vividus-framework_vividus&metric=alert_status)](https://sonarcloud.io/dashboard?id=vividus-framework_vividus)
 [![Stackoverflow](https://img.shields.io/badge/stackoverflow-vividus-green.svg)](http://stackoverflow.com/questions/tagged/vividus)
 [![BrowserStack Status](https://automate.browserstack.com/badge.svg?badge_key=VjFGZEtSdWpWZ3QrNkNBeHphOUpLbWFsL2VLMW15eUxySGEwamovU1ArTT0tLVN3dlROQWpVbnlNWWdsOGFxdDYwRGc9PQ==--4afc60c487e3a7d23e327c7b430c81e34277a35e)](https://automate.browserstack.com/public-build/VjFGZEtSdWpWZ3QrNkNBeHphOUpLbWFsL2VLMW15eUxySGEwamovU1ArTT0tLVN3dlROQWpVbnlNWWdsOGFxdDYwRGc9PQ==--4afc60c487e3a7d23e327c7b430c81e34277a35e)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-**This repository contains source code of VIVIDUS tool. If you are looking for the user guide, please, check out [Vividus Starter](https://github.com/vividus-framework/vividus-starter) and [the official documentation](https://docs.vividus.dev/).**
+**This repository contains source code of VIVIDUS tool. If you are looking for the user guide, please, check out [VIVIDUS Starter](https://github.com/vividus-framework/vividus-starter) and [the official documentation](https://docs.vividus.dev/).**
 
 ## How to build the project? (Only for VIVIDUS developers)
-Prerequisites: make sure [Java 17](https://adoptium.net/temurin/releases/?version=17) is used.
+Prerequisites: make sure [Java 21](https://adoptium.net/temurin/releases/?version=21) is used.
 
-1. Clone main [Vividus project](https://github.com/vividus-framework/vividus.git)
+1. Clone main [VIVIDUS project](https://github.com/vividus-framework/vividus.git)
     ```shell
     git clone --recursive https://github.com/vividus-framework/vividus.git
     ```
@@ -57,7 +57,7 @@ Prerequisites: make sure [Java 17](https://adoptium.net/temurin/releases/?versio
 <td>
 <br />
 
-[![BrowserStack](https://www.browserstack.com/images/mail/browserstack-logo-footer.png)](https://www.browserstack.com)
+[<img src="https://browserstack.wpenginepowered.com/wp-content/themes/browserstack/img/browserstack_inverse_footer_logo.svg" width="180px" alt="BrowserStack">]([https://saucelabs.com](https://www.browserstack.com))
 
 [BrowserStack](https://www.browserstack.com/) has provided us with the tools and infrastructure necessary to build a high quality tool by testing our components on a range of browsers and platforms. Thank you.
 

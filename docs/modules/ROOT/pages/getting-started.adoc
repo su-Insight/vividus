@@ -14,7 +14,7 @@ we highly recommend you read xref:ROOT:tests-configuration.adoc["How to cook VIV
 . https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup#_your_identity[Configure] your identity
 
 === Install Java
-. Download and install https://adoptium.net/temurin/releases/?version=17[Java 17].
+. Download and install https://adoptium.net/temurin/releases/?version=21[Java 21].
 . https://www.baeldung.com/java-home-on-windows-7-8-10-mac-os-x-linux[Configure `JAVA_HOME` environment variable] to point your directory with installed JDK.
 . Add new entry to `PATH` environment variable:
     * for Windows: `%JAVA_HOME%/bin`
@@ -81,7 +81,7 @@ Please choose any of the listed below IDEs.
 === Eclipse
 
 ==== Prerequisites
-. Install https://www.eclipse.org/downloads/packages/release/2023-06/r/eclipse-ide-java-developers[Eclipse IDE 2023-06]
+. Install https://www.eclipse.org/downloads/packages/release/2024-03/r/eclipse-ide-java-developers[Eclipse IDE 2024-03]
 . Add https://jbehave.org/eclipse-integration.html[JBehave plugin]
 
 ==== Import the project
@@ -101,7 +101,7 @@ Please choose any of the listed below IDEs.
 gradlew eclipse
 ----
 
-. https://help.eclipse.org/2023-06/index.jsp?topic=%2Forg.eclipse.platform.doc.user%2Ftasks%2Ftasks-importproject.htm[Import the project to Eclipse]
+. https://help.eclipse.org/2024-03/index.jsp?topic=%2Forg.eclipse.platform.doc.user%2Ftasks%2Ftasks-importproject.htm[Import the project to Eclipse]
 . Start creating your tests
 
 === Visual Studio Code

@@ -60,7 +60,7 @@
         <property name="storyLoader" ref="storyLoader" />
         <property name="storyReporterBuilder" ref="storyReporterBuilder" />
         <property name="placeholderResolver" ref="placeholderResolver" />
-        <property name="compositePaths" value="${engine.composite-paths},steps/defaults/*.steps"/>
+        <property name="compositePaths" value="${internal.engine.composite-paths}"/>
         <property name="aliasPaths" value="${engine.alias-paths}"/>
         <property name="storyControls" ref="springStoryControls" />
         <property name="parallelStoryExamplesEnabled" value="${bdd.configuration.parallel-story-examples-enabled}"/>
@@ -73,6 +73,11 @@
          <property name="dryRun" value="${bdd.configuration.dry-run}" />
          <property name="resetStateBeforeScenario" value="#{!T(java.lang.Boolean).parseBoolean('${story.fail-fast}')}" />
          <property name="skipStoryIfGivenStoryFailed" value="${bdd.configuration.skip-story-if-given-story-failed}" />
+        <property name="storyIndexFormat">
+            <bean class="java.text.DecimalFormat">
+                <constructor-arg value="${story.example-index-format}" />
+            </bean>
+        </property>
     </bean>
 
     <bean class="org.vividus.log.LoggingStepMonitor" />

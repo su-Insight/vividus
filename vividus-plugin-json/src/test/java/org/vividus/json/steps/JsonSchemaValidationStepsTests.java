@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,8 +80,8 @@ class JsonSchemaValidationStepsTests
         steps.validateJsonAgainstSchema(loadResource("not-valid-against-schema.json"), schema);
         var lineSeparator = System.lineSeparator();
         var errorMessage = "JSON is not valid against schema:" + lineSeparator
-                + "1) $.price: is missing but it is required," + lineSeparator
-                + "2) $.tags: integer found, array expected";
+                + "1) $.tags: integer found, array expected," + lineSeparator
+                + "2) $: required property 'price' not found";
         verify(softAssert).recordAssertion(false, errorMessage);
         verifyNoMoreInteractions(softAssert);
     }
