@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.vividus.selenium.screenshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -49,10 +50,12 @@ import pazone.ashot.coordinates.Coords;
 import pazone.ashot.coordinates.CoordsProvider;
 import pazone.ashot.util.ImageTool;
 
+@SuppressWarnings("PMD.GuardLogStatement")
 @ExtendWith(MockitoExtension.class)
 class ScreenshotCropperTests
 {
     private static final String ORIGINAL = "original";
+    private static final String ORIGINAL_CONTEXT = "original_context_check";
 
     @Mock private Locator emptyLocator;
     @Mock private Locator elementLocator;
@@ -84,6 +87,30 @@ class ScreenshotCropperTests
         ), 0);
 
         verifyScreenshot(actual);
+    }
+
+    @Test
+    void shouldNotCropElementsOutsideImageContext() throws IOException
+    {
+        when(webDriverProvider.get()).thenReturn(webDriver);
+
+        Locator leftOuterAreaLocator = mock(Locator.class);
+        Locator topOuterAreaLocator = mock(Locator.class);
+        WebElement areaLeft = mock(WebElement.class);
+        WebElement areaTop = mock(WebElement.class);
+        Coords areaLeftCoords = new Coords(8, 340, 117, 18);
+        Coords areaTopCoords = new Coords(8, 214, 2739, 38);
+
+        when(searchActions.findElements(leftOuterAreaLocator)).thenReturn(List.of(areaLeft));
+        when(searchActions.findElements(topOuterAreaLocator)).thenReturn(List.of(areaTop));
+        when(coordsProvider.ofElements(eq(webDriver), anyList())).thenReturn(Set.of(areaLeftCoords, areaTopCoords));
+
+        BufferedImage originalImage = loadImage(ORIGINAL_CONTEXT);
+        BufferedImage actual = cropper.crop(originalImage, Optional.of(new Coords(129, 274, 264, 81)),
+                Map.of(IgnoreStrategy.AREA, Set.of(leftOuterAreaLocator, topOuterAreaLocator)), 0);
+
+        BufferedImage afterCropping = loadImage(ORIGINAL_CONTEXT);
+        assertThat(actual, ImageTool.equalImage(afterCropping));
     }
 
     @Test

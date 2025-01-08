@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.jbehave.core.model.ExamplesTable.TableProperties;
 import org.vividus.crawler.ISiteMapParser;
 import org.vividus.crawler.SiteMap;
 import org.vividus.crawler.SiteMapParseException;
+import org.vividus.util.UriUtils;
 
 import crawlercommons.sitemaps.SiteMapURL;
 
@@ -36,6 +37,7 @@ public class SiteMapTableTransformer extends AbstractFetchingUrlsTableTransforme
 {
     private ISiteMapParser siteMapParser;
     private boolean ignoreErrors;
+    private boolean strict;
 
     private final List<SiteMap> siteMaps = Collections.synchronizedList(new LinkedList<>());
 
@@ -47,8 +49,12 @@ public class SiteMapTableTransformer extends AbstractFetchingUrlsTableTransforme
                 .map(Boolean::valueOf)
                 .orElse(ignoreErrors);
         String siteMapRelativeUrl = properties.getMandatoryNonBlankProperty("siteMapRelativeUrl", String.class);
+        boolean strictParameter = Optional.ofNullable(properties.getProperties().getProperty("strict"))
+                .map(Boolean::valueOf)
+                .orElse(strict);
 
-        URI mainApplicationPage = getMainApplicationPageUri();
+
+        URI mainApplicationPage = getMainApplicationPageUri(properties);
         Set<String> urls = siteMaps.stream().filter(
             s -> s.mainAppPage().equals(mainApplicationPage) && s.siteMapRelativeUrl().equals(siteMapRelativeUrl))
             .findFirst().orElseGet(() ->
@@ -56,7 +62,7 @@ public class SiteMapTableTransformer extends AbstractFetchingUrlsTableTransforme
                 Set<String> siteMapRelativeUrls;
                 try
                 {
-                    siteMapRelativeUrls = filterResults(siteMapParser.parse(true, mainApplicationPage,
+                    siteMapRelativeUrls = filterResults(siteMapParser.parse(strictParameter, mainApplicationPage,
                             siteMapRelativeUrl).stream()
                             .map(SiteMapURL::getUrl)
                             .map(URL::toString));
@@ -80,6 +86,12 @@ public class SiteMapTableTransformer extends AbstractFetchingUrlsTableTransforme
         return urls;
     }
 
+    @Override
+    protected URI parseUri(String uri)
+    {
+        return UriUtils.createUri(uri);
+    }
+
     public void setSiteMapParser(ISiteMapParser siteMapParser)
     {
         this.siteMapParser = siteMapParser;
@@ -88,5 +100,10 @@ public class SiteMapTableTransformer extends AbstractFetchingUrlsTableTransforme
     public void setIgnoreErrors(boolean ignoreErrors)
     {
         this.ignoreErrors = ignoreErrors;
+    }
+
+    public void setStrict(boolean strict)
+    {
+        this.strict = strict;
     }
 }

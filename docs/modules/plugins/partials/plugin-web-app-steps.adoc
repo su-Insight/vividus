@@ -133,7 +133,9 @@ When I scroll context to BOTTOM edge
 
 ==== Scroll element into view
 
-Scrolls an element into the view.
+Scrolls an element into the view with centred positioning.
+
+NOTE: If the element to scroll is located inside an https://developer.mozilla.org/en-US/docs/Web/CSS/overflow[overflow] container then native https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView[scrollIntoView] JS method with top alignment is used.
 
 [source,gherkin]
 ----
@@ -169,6 +171,8 @@ Then page is scrolled to element located by `$locator`
 ----
 Then page is scrolled to element located by `xpath(//a[text()="Contact"])`
 ----
+
+include::plugins:partial$ui-elements-validation-steps.adoc[]
 
 include::plugins:partial$ui-selenium-text-content-steps.adoc[]
 include::plugins:partial$common-web-app-text-steps.adoc[]
