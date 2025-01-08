@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,6 +58,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.vividus.html.HtmlLocatorType;
 import org.vividus.http.HttpMethod;
 import org.vividus.http.HttpRequestExecutor;
 import org.vividus.http.HttpTestContext;
@@ -114,6 +115,8 @@ class ResourceCheckStepsTests
     private static final String EXTERNAL_SECTION_LINK_SELECTOR = "#external-section";
     private static final String SECTION_SELECTOR = "#section";
     private static final String JUMP_LINK_SELECTOR = "#jump-link";
+    private static final String NAMED_SECTION_SELECTOR = "#named-section";
+    private static final String JUMP_LINK_USING_NAME_SELECTOR = "#jump-link-using-name";
 
     private static final String INVALID_URL = "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|"
             + "Google+Sans:400,500,700|Google+Sans+Text:400&lang=en";
@@ -149,6 +152,8 @@ class ResourceCheckStepsTests
               <a id='external-section' href='https://external.page/other#section'>External jump link</a>
               <a id='jump-link' href='#section'>Jump link</a>
               <p id='section'>Section</p>
+              <a id='jump-link-using-name' href='#named-section'>Jump link using name</a>
+              <p name='named-section'>Named Section</a>
             </body>
             </html>""";
 
@@ -174,6 +179,7 @@ class ResourceCheckStepsTests
           + "  <video id='video-id'>Some video without attributes</a>\r\n"
           + "  <a id='link-id-2' href='" + INVALID_URL + "'>Fonts</a>\r\n"
           + "  <a id='jump-link' href='#section'>Jump link</a>\r\n"
+          + "  <a id='jump-link-using-name' href='#named-section'>Jump link using name</a>\r\n"
           + "</body>\r\n"
           + "</html>\r\n";
 
@@ -216,14 +222,16 @@ class ResourceCheckStepsTests
         URI imageUri = URI.create("https://avatars0.githubusercontent.com/u/48793437?s=200&v=4");
         URI gifImageUri = URI.create("https://github.githubassets.com/images/spinners/octocat-spinner-32.gif");
         when(webApplicationConfiguration.getMainApplicationPageUrlUnsafely()).thenReturn(VIVIDUS_URI);
-        resourceCheckSteps.checkResources("a, img", FIRST_PAGE);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, "a, img", FIRST_PAGE);
 
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
             Set<WebPageResourceValidation> validationsToReport = ((Map<String, Set<WebPageResourceValidation>>) m)
                     .get(RESULTS);
-            assertThat(validationsToReport, hasSize(15));
+            assertThat(validationsToReport, hasSize(16));
             Iterator<WebPageResourceValidation> resourceValidations = validationsToReport.iterator();
+            validate(resourceValidations, URI.create(NAMED_SECTION_SELECTOR), JUMP_LINK_USING_NAME_SELECTOR,
+                    CheckStatus.PASSED, N_A);
             validate(resourceValidations, URI.create(SECTION_SELECTOR), JUMP_LINK_SELECTOR, CheckStatus.PASSED, N_A);
             validate(resourceValidations, SERENITY_URI, HTTP_ID, CheckStatus.PASSED, N_A);
             validate(resourceValidations, imageUri, "#image", CheckStatus.PASSED, N_A);
@@ -259,7 +267,7 @@ class ResourceCheckStepsTests
 
         String html = "<!DOCTYPE html><html><head></head><body><a id='about' href='/faq'>FAQ</a>"
                 + "<a id='broken-link' href='" + INVALID_URL + "'>Invalid link</a></body></html>";
-        resourceCheckSteps.checkResources(LINK_SELECTOR, html);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, html);
 
         String errorMessage = "Unable to resolve /faq resource since the main application page URL is not set";
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
@@ -298,7 +306,7 @@ class ResourceCheckStepsTests
         resourceCheckSteps.setUriToIgnoreRegex(Optional.empty());
         resourceCheckSteps.init();
         ExamplesTable examplesTable = new ExamplesTable("{valueSeparator=!}\n|pages|\n!" + pageUrl + "!");
-        resourceCheckSteps.checkResources(LINK_SELECTOR, examplesTable);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, examplesTable);
 
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
@@ -329,15 +337,17 @@ class ResourceCheckStepsTests
             Sleeper.sleep(5, TimeUnit.SECONDS);
             return null;
         }).when(httpRequestExecutor).executeHttpRequest(HttpMethod.GET, SECOND_PAGE_URL, Optional.empty());
-        resourceCheckSteps.checkResources(LINK_SELECTOR, examplesTable);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, examplesTable);
         verify(httpRequestExecutor).executeHttpRequest(HttpMethod.GET, SECOND_PAGE_URL, Optional.empty());
         verify(httpRequestExecutor).executeHttpRequest(HttpMethod.GET, FIRST_PAGE_URL, Optional.empty());
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
             Set<WebPageResourceValidation> validationsToReport = ((Map<String, Set<WebPageResourceValidation>>) m)
                     .get(RESULTS);
-            assertThat(validationsToReport, hasSize(13));
+            assertThat(validationsToReport, hasSize(14));
             Iterator<WebPageResourceValidation> resourceValidations = validationsToReport.iterator();
+            validate(resourceValidations.next(), URI.create(NAMED_SECTION_SELECTOR), JUMP_LINK_USING_NAME_SELECTOR,
+                    CheckStatus.PASSED);
             validate(resourceValidations.next(), URI.create(SECTION_SELECTOR), JUMP_LINK_SELECTOR, CheckStatus.PASSED);
             validate(resourceValidations.next(), SERENITY_URI, HTTP_ID, CheckStatus.PASSED);
             validate(resourceValidations.next(), EXTERNAL_SECTION_LINK, EXTERNAL_SECTION_LINK_SELECTOR,
@@ -366,24 +376,26 @@ class ResourceCheckStepsTests
         HttpResponse httpResponse = mock(HttpResponse.class);
         when(httpTestContext.getResponse()).thenReturn(httpResponse);
         when(httpResponse.getResponseBodyAsString()).thenReturn(THIRD_PAGE);
-        resourceCheckSteps.setUriToIgnoreRegex(Optional.empty());
+        resourceCheckSteps.setUriToIgnoreRegex(Optional.of(NAMED_SECTION_SELECTOR));
         resourceCheckSteps.init();
         ExamplesTable examplesTable =
                 new ExamplesTable("|pages|\n|https://third.page|");
-        resourceCheckSteps.checkResources(LINK_SELECTOR + ", video", examplesTable);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR + ", video", examplesTable);
         verify(httpRequestExecutor).executeHttpRequest(HttpMethod.GET, THIRD_PAGE_URL, Optional.empty());
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
             Set<WebPageResourceValidation> validationsToReport = ((Map<String, Set<WebPageResourceValidation>>) m)
                     .get(RESULTS);
-            assertThat(validationsToReport, hasSize(4));
+            assertThat(validationsToReport, hasSize(5));
             Iterator<WebPageResourceValidation> resourceValidations = validationsToReport.iterator();
             validateError(resourceValidations.next(), "Element doesn't contain href/src attributes", "#video-id",
                     THIRD_PAGE_URL);
             validateError(resourceValidations.next(), INVALID_HREF_ATTR_MESSAGE, "#link-id-2", THIRD_PAGE_URL);
-            validateError(resourceValidations.next(), "Jump link points to missing element with section id",
+            validateError(resourceValidations.next(), "Jump link points to missing element with section id or name",
                     JUMP_LINK_SELECTOR, THIRD_PAGE_URL);
             validate(resourceValidations.next(), VIVIDUS_ABOUT_URI, "#link-id", CheckStatus.PASSED);
+            validate(resourceValidations.next(), URI.create(NAMED_SECTION_SELECTOR), JUMP_LINK_USING_NAME_SELECTOR,
+                    CheckStatus.FILTERED);
             return true;
         }), eq(REPORT_NAME));
         verify(softAssert).recordFailedAssertion("Element by selector #video-id doesn't contain href/src attributes");
@@ -420,7 +432,7 @@ class ResourceCheckStepsTests
         String page = "https://any.page";
         ExamplesTable examplesTable =
                 new ExamplesTable(String.format("|pages|%n|%s|", page));
-        resourceCheckSteps.checkResources("img", examplesTable);
+        resourceCheckSteps.checkResources(HtmlLocatorType.XPATH, "//img", examplesTable);
         verify(httpRequestExecutor).executeHttpRequest(HttpMethod.GET, page, Optional.empty());
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
@@ -444,7 +456,7 @@ class ResourceCheckStepsTests
         resourceCheckSteps.init();
         ExamplesTable examplesTable =
                 new ExamplesTable(FIRST_PAGE_TABLE);
-        resourceCheckSteps.checkResources(LINK_SELECTOR, examplesTable);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, examplesTable);
         String errorMessage = "Unable to get page with URL: https://first.page";
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
@@ -469,7 +481,7 @@ class ResourceCheckStepsTests
         resourceCheckSteps.init();
         ExamplesTable examplesTable =
                 new ExamplesTable("|pages|\n|https://second.page|");
-        resourceCheckSteps.checkResources(LINK_SELECTOR, examplesTable);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, examplesTable);
         String errorMessage = "Unable to get page with URL: https://second.page; Response is received without body;";
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
@@ -491,7 +503,7 @@ class ResourceCheckStepsTests
             v.uncaughtException(new Thread("Interrupted-0"), interruptedException);
             return true;
         }));
-        resourceCheckSteps.checkResources(LINK_SELECTOR, FIRST_PAGE_TABLE);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, FIRST_PAGE_TABLE);
         verify(softAssert).recordFailedAssertion("Exception occured in thread with name: Interrupted-0",
                 interruptedException);
         verifyNoInteractions(httpTestContext, attachmentPublisher, resourceValidator);
@@ -512,7 +524,7 @@ class ResourceCheckStepsTests
             throw exception;
         }).when(executor).execute(any(), any());
         var illegalStateException = assertThrows(IllegalStateException.class,
-                () -> resourceCheckSteps.checkResources(LINK_SELECTOR, FIRST_PAGE_TABLE));
+                () -> resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, FIRST_PAGE_TABLE));
         assertEquals(exception, illegalStateException.getCause());
     }
 
@@ -532,15 +544,15 @@ class ResourceCheckStepsTests
     {
         mockResourceValidator();
         runExecutor();
-        resourceCheckSteps.setUriToIgnoreRegex(Optional.of("^((?!https).)*"));
+        resourceCheckSteps.setUriToIgnoreRegex(Optional.of("(?!https).*"));
         resourceCheckSteps.init();
         when(webApplicationConfiguration.getMainApplicationPageUrlUnsafely()).thenReturn(VIVIDUS_URI);
-        resourceCheckSteps.checkResources(LINK_SELECTOR, FIRST_PAGE);
+        resourceCheckSteps.checkResources(HtmlLocatorType.CSS_SELECTOR, LINK_SELECTOR, FIRST_PAGE);
         verify(attachmentPublisher).publishAttachment(eq(TEMPLATE_NAME), argThat(m -> {
             @SuppressWarnings(UNCHECKED)
             Set<WebPageResourceValidation> validationsToReport = ((Map<String, Set<WebPageResourceValidation>>) m)
                     .get(RESULTS);
-            assertThat(validationsToReport, hasSize(12));
+            assertThat(validationsToReport, hasSize(13));
             Iterator<WebPageResourceValidation> resourceValidations = validationsToReport.iterator();
             validate(resourceValidations, EXTERNAL_SECTION_LINK, EXTERNAL_SECTION_LINK_SELECTOR, CheckStatus.PASSED,
                     N_A);
@@ -550,6 +562,8 @@ class ResourceCheckStepsTests
             validate(resourceValidations, VIVIDUS_QUERY_URI_1, SELECTOR_QUERY_1, CheckStatus.PASSED, N_A);
             validate(resourceValidations, VIVIDUS_QUERY_URI_2, SELECTOR_QUERY_2, CheckStatus.PASSED, N_A);
             validate(resourceValidations, SHARP_URI, SHARP_ID, CheckStatus.FILTERED, N_A);
+            validate(resourceValidations, URI.create(NAMED_SECTION_SELECTOR), JUMP_LINK_USING_NAME_SELECTOR,
+                    CheckStatus.FILTERED, N_A);
             validate(resourceValidations, URI.create(SECTION_SELECTOR), JUMP_LINK_SELECTOR, CheckStatus.FILTERED, N_A);
             validate(resourceValidations, FTP_URI, FTP_ID, CheckStatus.FILTERED, N_A);
             validate(resourceValidations, SERENITY_URI, HTTP_ID, CheckStatus.FILTERED, N_A);

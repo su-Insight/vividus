@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,13 @@
  * limitations under the License.
  */
 
-package org.vividus.html;
+package org.vividus.ui;
 
-public enum LocatorType
+import java.util.Map;
+
+public interface ContextSourceCodeProvider
 {
-    XPATH("XPath"), CSS_SELECTOR("CSS selector");
+    String APPLICATION_SOURCE_CODE = "Application source code";
 
-    private final String description;
-
-    LocatorType(String description)
-    {
-        this.description = description;
-    }
-
-    public String getDescription()
-    {
-        return description;
-    }
+    Map<String, String> getSourceCode();
 }
