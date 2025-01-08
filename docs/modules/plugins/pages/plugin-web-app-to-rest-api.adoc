@@ -1,3 +1,5 @@
+:main-page-url: xref:plugin-web-app.adoc#_properties[web-application.main-page-url]
+
 = Web Application & REST API Integration Plugin
 
 The plugin provides the integration between web application testing functionality and REST API features.
@@ -7,24 +9,14 @@ include::partial$plugin-installation.adoc[]
 
 == xref:ROOT:glossary.adoc#_table_transformer[Table Transformers]
 
-=== FROM_SITEMAP
+=== `FROM_SITEMAP`
 
 `FROM_SITEMAP` transformer generates table based on the website sitemap.
 
-[cols="1,3", options="header"]
-|===
-|Parameter
-|Description
+IMPORTANT: The use of `web-application.main-page-url` property for setting of main page for crawling is deprecated and will be removed in VIVIDUS 0.7.0, pelase see either `mainPageUrl` transformer parameter or `transformer.from-sitemap.main-page-url` property.
 
-|`siteMapRelativeUrl`
-|relative URL of `sitemap.xml`
-
-|`ignoreErrors`
-|ignore sitemap parsing errors (_true_ or _false_)
-
-|`column`
-|the column name in the generated table
-|===
+The properties outlined in the table below are applied to all FROM_SITEMAP transformers utilized in the tests, unless
+they override the values by specifiying the corresponding table parameters.
 
 [cols="3,1,1,3", options="header"]
 |===
@@ -33,41 +25,81 @@ include::partial$plugin-installation.adoc[]
 |Default
 |Description
 
+|`transformer.from-sitemap.main-page-url`
+|URL
+|
+|The main application page URL, used as initial seed URL that is fetched by the crawler to extract new URLs in it and follow them for crawling.
+
 |`transformer.from-sitemap.ignore-errors`
-a|`true`
+a|`true` +
 `false`
 |`false`
-|ignore sitemap parsing errors
+|Ignore sitemap parsing errors.
+
+|`transformer.from-sitemap.strict`
+a|`true` +
+`false`
+|`true`
+|Whether invalid URLs will be rejected silently (where "invalid" means that the URL is not under the base URL, see https://www.sitemaps.org/protocol.html#location[sitemap file location explanation] for more details)
 
 |`transformer.from-sitemap.filter-redirects`
-a|`true`
+a|`true` +
 `false`
 |`false`
 |defines whether urls that has redirect to the one that has already been included in the table are excluded from the table
+
 |===
-==== Required properties
-* `web-application.main-page-url` - defines main application page URL
+
+The parameters outlined in the table below are exclusively applicable to the transformer in which they are declared.
+
+[cols="1,1,1,2", options="header"]
+|===
+|Parameter
+|Acceptable values
+|Default
+|Description
+
+|`mainPageUrl`
+|URL
+|If not specified, the default value is taken from `transformer.from-sitemap.main-page-url` property.
+|The main application page URL, used as initial seed URL that is fetched by the crawler to extract new URLs in it and follow them for crawling.
+
+|`siteMapRelativeUrl`
+|Relative URL
+|
+|The relative URL of `sitemap.xml`.
+
+|`column`
+|
+|
+|The column name to store collected relative URLs in the generated table.
+
+|`ignoreErrors`
+a|`true` +
+`false`
+|If not specified, the default value is taken from `transformer.from-sitemap.ignore-errors` property.
+|Ignore sitemap parsing errors.
+
+|`strict`
+a|`true` +
+`false`
+|If not specified, the default value is taken from `transformer.from-sitemap.strict` property.
+|Whether invalid URLs will be rejected silently (where "invalid" means that the URL is not under the base URL, see https://www.sitemaps.org/protocol.html#location[sitemap file location explanation] for more details)
+|===
+
 
 .Usage example
 ----
 Examples:
-{transformer=FROM_SITEMAP, siteMapRelativeUrl=/sitemap.xml, ignoreErrors=true, column=page-url}
+{transformer=FROM_SITEMAP, siteMapRelativeUrl=/sitemap.xml, ignoreErrors=true, strict=false, column=page-url}
 ----
 
 === FROM_HEADLESS_CRAWLING
 
 `FROM_HEADLESS_CRAWLING` transformer generates table based on the results of headless crawling.
 
-[cols="1,3", options="header"]
-|===
+IMPORTANT: The use of `web-application.main-page-url` property for setting of main page for crawling is deprecated and will be removed in VIVIDUS 0.7.0, pelase see either `mainPageUrl` transformer parameter or `transformer.from-headless-crawling.main-page-url` property.
 
-|Parameter Name
-|Description
-
-|`column`
-|The column name in the generated table.
-
-|===
 
 [cols="3,1,1,3", options="header"]
 |===
@@ -79,18 +111,36 @@ Examples:
 
 4+^.^|_General_
 
+|`transformer.from-headless-crawling.main-page-url`
+|`URL`
+|
+a|main application page URL, used as initial seed URL that is fetched by the crawler to extract new URLs in it and follow them for crawling.
+
+IMPORTANT: The main page url value defined by this property gets overriden by the value defined in `mainPageUrl` transformer parameter.
+
 |`transformer.from-headless-crawling.seed-relative-urls`
 |Comma-separated list of values
 |
 |List of relative URLs, a seed URL is a URL that is fetched by the crawler to extract new URLs in it and follow them for crawling.
 
-|`transformer.from-headless-crawling.exclude-extensions-regex`
+|`transformer.from-headless-crawling.exclude-urls-regex`
 |Regular expression
-a |`(css\|gif\|gz\|ico\|jpeg\|jpg\|js\|mp3\|mp4\|pdf\|png\|svg\|zip\|woff2
-\|woff\|ttf\|doc\|docx\|xml\|json\|webmanifest)`
+a |`.*(css\|gif\|gz\|ico\|jpeg\|jpg\|js\|mp3\|mp4\|pdf\|png\|svg\|zip\|woff2
+\|woff\|ttf\|doc\|docx\|xml\|json\|webmanifest)$`
+|The regular expression to match URLs.
+The crawler will not crawl all URLs that matching the given regular expression and they will not be added to the resulting table.
+https://en.wikipedia.org/wiki/URI_fragment[URI fragments] and https://en.wikipedia.org/wiki/Query_string[URL query] are ignored at filtering.
+
+a|`transformer.from-headless-crawling.exclude-extensions-regex`
+[WARNING]
+====
+The property is deprecated in favor of `transformer.from-headless-crawling.exclude-urls-regex` and will be removed in VIVIDUS 0.7.0.
+====
+
+|Regular expression
+|no default value
 |The regular expression to match extensions in URLs.
 The crawler will ignore all URLs referring to files with extensions matching the given regular expression.
-URLs without extensions will always be crawled.
 
 |`transformer.from-headless-crawling.filter-redirects`
 a|`true`
@@ -216,9 +266,21 @@ transformer.from-headless-crawling.http.headers.x-vercel-protection-bypass=1fac2
 
 |===
 
-==== Required properties
+[cols="1,3", options="header"]
+|===
 
-* `web-application.main-page-url` - defines main application page URL
+|Parameter Name
+|Description
+
+|`mainPageUrl`
+a|main application page URL, used as initial seed URL that is fetched by the crawler to extract new URLs in it and follow them for crawling.
+
+IMPORTANT: The main page url value defined by this parameter overrides the value defined by the `transformer.from-headless-crawling.main-page-url` property.
+
+|`column`
+|The column name in the generated table.
+
+|===
 
 .Usage example
 ----
@@ -237,7 +299,18 @@ Examples:
 |Description
 
 |`pageUrl`
-|The URL of the page to build the table upon.
+a|The URL of the page to build the table upon.
+
+WARNING: The `pageUrl` parameter is deprecated and will be removed in VIVIDUS 0.7.0, please use `variableName` instead.
+
+IMPORTANT: The `pageUrl` parameter can not be used together with the `variableName` parameter.
+
+|`variableName`
+a|The name of the variable containing source HTML, only variables of scopes `global` and `next_batches` are allowed.
+Exceptions are cases when the transformer using in xref:commons:vividus-steps.adoc#_initialize_variable_with_a_table[step]
+which initializes a variable with a table.
+
+IMPORTANT: The `variableName` parameter can not be used together with the `pageUrl` parameter.
 
 |`column`
 |The column name in the generated table.
@@ -302,21 +375,13 @@ Examples:
 
 == Steps
 
-=== Validate resources
+=== Resources validations
 
-Validates resources on web pages
+:css-selector: https://www.w3schools.com/cssref/css_selectors.asp[CSS selector]
 
-Resource validation logic:
+Steps to check resource availability using HTTP requests.
 
-. If the `pages` row contains relative URL then it gets resolved against URL in `web-application.main-page-url` property, i.e. if the main page URL is `https://elderscrolls.bethesda.net/` and relative URL is `/skyrim10` the resulting URL will be `https://elderscrolls.bethesda.net/skyrim10`
-. Collect elements by the CSS selector from each page
-. Get either `href` or `src` attribute value from each element, if neither of the attributes exists the validation fails
-. For each received value execute https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD[HEAD] request
-.. If the status code is https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/200[200 OK] then the resource validation is considered as passed
-.. If the status code is one of https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404[404 Not Found], https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405[405 Method Not Allowed], https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/501[501 Not Implemented], https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503[503 Service Unavailable] then GET request will be executed
-.. If the https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET[GET] status code is https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/200[200 OK] then the resource validation is considered as passed, otherwise failed
-
-Resource validation statuses:
+==== Resource validation statuses
 
 [cols="1,4", options="header"]
 |===
@@ -331,7 +396,7 @@ a|Reasons:
 
 * an HTTP request to the page under test returns an empty HTTP response body;
 * an HTTP request to the page under test results in unexpected error;
-* the relative page URL can not be resolved because the `web-application.main-page-url` property is not set;
+* the relative page URL can not be resolved because the `{main-page-url}` property is not set;
 * the resource has invalid URL format;
 * the resource is missing `href` or `src` attributes;
 * the resource has `href` or `src` attribute but its value is not a valid URL;
@@ -345,28 +410,94 @@ a|Reasons:
 
 * the resource path matches the patterns specified by the `resource-checker.uri-to-ignore-regex` property;
 * the resource path is equal to `#` (anchor);
-* the resource is not a HTTP(S) resource.
+* the resource is not a HTTP(S) resource;
+* the resource is jump link which cannot be verified from the current context (if only part of the document is checked).
 
 |`SKIPPED`
 |A resource validation has already been performed, i.e. if the same resource might be present on several pages so we do not need to validate it twice.
 
 |===
 
+==== Properties
+
+[cols="3,1,1,3", options="header"]
+|===
+
+|Property Name
+|Acceptable values
+|Default
+|Description
+
+|`resource-checker.publish-response-body`
+a|`true`
+`false`
+|`false`
+a|Whether to attach the HTTP response body for HTTP calls with non-successful status codes (may reduce performance).
+
+|===
+
+==== Validate resources on web pages
+
+Validates resources on web pages.
+
+Resource validation logic:
+
+. If the `pages` row contains relative URL then it gets resolved against URL in `{main-page-url}` property, i.e. if the main page URL is `https://elderscrolls.bethesda.net/` and relative URL is `/skyrim10` the resulting URL will be `https://elderscrolls.bethesda.net/skyrim10`
+. Collect elements by the CSS selector from each page
+. Get either `href` or `src` attribute value from each element, if neither of the attributes exists the validation fails
+include::partial$resource-check-statuses.adoc[]
+
+[source,gherkin]
+----
+Then all resources found by $htmlLocatorType `$htmlLocator` are valid on:$pages
+----
+
+_Deprecated syntax (will be removed in VIVIDUS 0.7.0)_:
 [source,gherkin]
 ----
 Then all resources by selector `$cssSelector` are valid on:$pages
 ----
 
-. `$cssSelector` - The https://www.w3schools.com/cssref/css_selectors.asp[CSS selector]
-. `$pages` - The pages to validate resources on
+include::partial$html-locator.adoc[]
+. `$pages` - The pages to validate resources on.
 
-.Validate resources
+.Validate resources located by XPath
 [source,gherkin]
 ----
-Then all resources by selector `a` are valid on:
+Then all resources found by xpath `//a` are valid on:
 |pages                        |
 |https://vividus.org/         |
 |/test-automation-made-awesome|
+----
+
+==== Validate resources from HTML
+
+Validates resources from HTML document.
+
+Resource validation logic:
+
+. Collects elements by the CSS selector from the specified HTML document
+. Get either `href` or `src` attribute value from each element, if neither of the attributes exists the validation fails. If the element value contains relative URL then it gets resolved against URL in `{main-page-url}` property
+include::partial$resource-check-statuses.adoc[]
+
+[source,gherkin]
+----
+Then all resources found by $htmlLocatorType `$htmlLocator` in $html are valid
+----
+
+_Deprecated syntax (will be removed in VIVIDUS 0.7.0)_:
+[source,gherkin]
+----
+Then all resources by selector `$cssSelector` from $html are valid
+----
+
+include::partial$html-locator.adoc[]
+. `$html` - HTML document to validate.
+
+.Validate resources from the current page
+[source,gherkin]
+----
+Then all resources found by CSS selector `a,img` in ${source-code} are valid
 ----
 
 === Validate redirects

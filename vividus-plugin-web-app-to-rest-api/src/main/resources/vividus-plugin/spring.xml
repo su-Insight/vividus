@@ -13,6 +13,7 @@
         <constructor-arg>
             <bean class="org.vividus.http.validation.ResourceValidator">
                 <constructor-arg ref="httpClient-ResourceValidator" />
+                <property name="publishResponseBody" value="${resource-checker.publish-response-body}" />
             </bean>
         </constructor-arg>
         <property name="uriToIgnoreRegex" value="${resource-checker.uri-to-ignore-regex}" />
@@ -72,7 +73,10 @@
           parent="abstractFetchingUrlsTableTransformer">
         <property name="siteMapParser" ref="siteMapParser" />
         <property name="ignoreErrors" value="${transformer.from-sitemap.ignore-errors}" />
+        <property name="strict" value="${transformer.from-sitemap.strict}" />
         <property name="filterRedirects" value="${transformer.from-sitemap.filter-redirects}" />
+        <property name="mainPageUrl" value="${transformer.from-sitemap.main-page-url}" />
+        <property name="mainPageUrlProperty" value="transformer.from-sitemap.main-page-url" />
     </bean>
 
     <bean name="FROM_HEADLESS_CRAWLING" class="org.vividus.crawler.transformer.HeadlessCrawlerTableTransformer"
@@ -88,7 +92,10 @@
         </property>
         <property name="filterRedirects" value="${transformer.from-headless-crawling.filter-redirects}" />
         <property name="seedRelativeUrls" value="${transformer.from-headless-crawling.seed-relative-urls}" />
+        <property name="excludeUrlsRegex" value="${transformer.from-headless-crawling.exclude-urls-regex}" />
         <property name="excludeExtensionsRegex" value="${transformer.from-headless-crawling.exclude-extensions-regex}" />
+        <property name="mainPageUrl" value="${transformer.from-headless-crawling.main-page-url}" />
+        <property name="mainPageUrlProperty" value="transformer.from-headless-crawling.main-page-url" />
     </bean>
 
     <bean id="FROM_HTML" class="org.vividus.crawler.transformer.HtmlDocumentTableTransformer">

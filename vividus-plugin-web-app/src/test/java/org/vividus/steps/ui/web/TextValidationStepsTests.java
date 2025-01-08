@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ import org.vividus.ui.web.action.IWebElementActions;
 import org.vividus.ui.web.action.search.WebLocatorType;
 import org.vividus.ui.web.util.WebXpathLocatorUtils;
 
+@SuppressWarnings("PMD.UnnecessaryBooleanAssertion")
 @ExtendWith(MockitoExtension.class)
 class TextValidationStepsTests
 {
@@ -91,7 +92,7 @@ class TextValidationStepsTests
                 return List.of(webElement);
             }
         });
-        textValidationSteps.ifTextExists(TEXT);
+        textValidationSteps.assertTextExists(TEXT);
         verify(softAssert).assertTrue(THERE_IS_AN_ELEMENT_WITH_TEXT_TEXT_IN_THE_CONTEXT, true);
     }
 
@@ -101,7 +102,7 @@ class TextValidationStepsTests
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webDriver));
         when(webDriver.findElements(WebXpathLocatorUtils.getXPathLocatorByInnerText(TEXT)))
             .thenReturn(List.of(webElement));
-        textValidationSteps.ifTextExists(TEXT);
+        textValidationSteps.assertTextExists(TEXT);
         verify(softAssert).assertTrue(THERE_IS_AN_ELEMENT_WITH_TEXT_TEXT_IN_THE_CONTEXT, true);
     }
 
@@ -109,7 +110,7 @@ class TextValidationStepsTests
     void testDomElementsContainText()
     {
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webElement));
-        textValidationSteps.ifTextExists(TEXT);
+        textValidationSteps.assertTextExists(TEXT);
         verify(elementValidations).assertIfElementContainsText(webElement, TEXT, true);
     }
 
@@ -118,7 +119,7 @@ class TextValidationStepsTests
     {
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webDriver));
         when(webElementActions.getAllPseudoElementsContent()).thenReturn(List.of(TEXT));
-        textValidationSteps.ifTextExists(TEXT);
+        textValidationSteps.assertTextExists(TEXT);
         verify(softAssert).assertTrue(THERE_IS_AN_ELEMENT_WITH_TEXT_TEXT_IN_THE_CONTEXT, true);
     }
 
@@ -128,7 +129,7 @@ class TextValidationStepsTests
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webDriver));
         when(webElementActions.getAllPseudoElementsContent()).thenReturn(List.of());
         when(webElementActions.getPageText()).thenReturn("no");
-        textValidationSteps.ifTextExists(TEXT);
+        textValidationSteps.assertTextExists(TEXT);
         verify(softAssert).assertTrue(THERE_IS_AN_ELEMENT_WITH_TEXT_TEXT_IN_THE_CONTEXT, false);
     }
 
@@ -138,7 +139,7 @@ class TextValidationStepsTests
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webDriver));
         when(webElementActions.getAllPseudoElementsContent()).thenReturn(List.of());
         when(webElementActions.getPageText()).thenReturn(TEXT);
-        textValidationSteps.ifTextExists(TEXT);
+        textValidationSteps.assertTextExists(TEXT);
         verify(softAssert).assertTrue(THERE_IS_AN_ELEMENT_WITH_TEXT_TEXT_IN_THE_CONTEXT, true);
     }
 
@@ -187,7 +188,7 @@ class TextValidationStepsTests
     {
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webElement));
         when(webElementActions.getElementText(webElement)).thenReturn(elementText);
-        textValidationSteps.ifTextMatchesRegex(REGEX);
+        textValidationSteps.assertTextMatchesRegex(REGEX);
         verify(softAssert).assertTrue(TEXT_MATCHES_REGEX_MESSAGE + REGEX, actual);
     }
 
@@ -200,7 +201,7 @@ class TextValidationStepsTests
     {
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webDriver));
         when(webElementActions.getPageText()).thenReturn(pageText);
-        textValidationSteps.ifTextMatchesRegex(REGEX);
+        textValidationSteps.assertTextMatchesRegex(REGEX);
         verify(softAssert).assertTrue(TEXT_MATCHES_REGEX_MESSAGE + REGEX, actual);
     }
 
@@ -215,7 +216,7 @@ class TextValidationStepsTests
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webElement));
         when(webElementActions.getElementText(webElement)).thenReturn(ELEMENT_TEXT);
         when(webElementActions.getPseudoElementContent(webElement)).thenReturn(pseudoElementContent);
-        textValidationSteps.ifTextMatchesRegex(REGEX);
+        textValidationSteps.assertTextMatchesRegex(REGEX);
         verify(softAssert).assertTrue(TEXT_MATCHES_REGEX_MESSAGE + REGEX, actual);
     }
 
@@ -226,7 +227,7 @@ class TextValidationStepsTests
         when(uiContext.getOptionalSearchContext()).thenReturn(Optional.of(webDriver));
         Mockito.lenient().when(webDriver.findElements(locator)).thenReturn(List.of());
         when(searchActions.findElements(any(Locator.class))).thenReturn(List.of(webElement));
-        textValidationSteps.ifTextExists(TEXT.toUpperCase());
+        textValidationSteps.assertTextExists(TEXT.toUpperCase());
         verify(softAssert).assertTrue("There is an element with text=TEXT in the context", true);
     }
 }

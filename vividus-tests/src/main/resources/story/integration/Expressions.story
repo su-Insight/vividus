@@ -16,14 +16,24 @@ Examples:
 |"""#{generateDate(P, """yyyy, MM dd""")}"""|"""yyyy, MM dd"""|
 |"""#{generateDate(P, yyyy\\, MM dd)}"""    |yyyy\\, MM dd    |
 
-Scenario: Verify epoch generation and conversion
+Scenario: Verify generation and conversion of epoch time in seconds
 Given I initialize scenario variable `date` with value `#{generateDate(P, yyyy-MM-dd'T'HH:mm:ss)}`
 Given I initialize scenario variable `epoch` with value `#{toEpochSecond(${date})}`
 Then `${date}` is equal to `#{fromEpochSecond(${epoch})}`
 
+Scenario: Verify generation and conversion of epoch time in milliseconds
+Meta:
+    @requirementId 4887
+Given I initialize scenario variable `date` with value `#{generateDate(P, yyyy-MM-dd'T'HH:mm:ss.SSS)}`
+Given I initialize scenario variable `epoch` with value `#{toEpochMilli(${date})}`
+Then `${date}` is equal to `#{fromEpochMilli(${epoch})}`
+
 Scenario: Verify epoch generation with timezone
-Given I initialize scenario variable `epoch` with value `#{toEpochSecond(2020-12-11T18:43:05+05:30)}`
-Then `${epoch}` is equal to `1607692385`
+Meta:
+    @requirementId 4887
+Given I initialize scenario variable `dateWithTimeZone` with value `2020-12-11T18:43:05.987+05:30`
+Then `#{toEpochSecond(${dateWithTimeZone})}` is equal to `1607692385`
+Then `#{toEpochMilli(${dateWithTimeZone})}` is equal to `1607692385987`
 
 Scenario: Verify anyOf expression
 Then `#{anyOf(1, 2\,3,3,"""4,5""")}` matches `1|2,3|3|4,5`
@@ -222,6 +232,7 @@ Scenario: Validate expressions parsing URLs
 Then `#{<expression>}` is = `<expected>`
 Examples:
 |expression                                                                            |expected                  |
+|extractSchemeFromUrl(${vividus-test-site-url}/windows.html?query=test)                |https                     |
 |extractHostFromUrl(${vividus-test-site-url}/windows.html?query=test)                  |${vividus-test-site-host} |
 |extractPathFromUrl(${vividus-test-site-url}/windows.html?query=test)                  |/windows.html             |
 |extractPathFromUrl(${vividus-test-site-url}/encoded%E2%82%AC/windows.html?query=test) |/encoded€/windows.html    |

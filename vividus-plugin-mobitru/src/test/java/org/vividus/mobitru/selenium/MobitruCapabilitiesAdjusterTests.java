@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.vividus.mobitru.client.InstallApplicationOptions;
 import org.vividus.mobitru.client.MobitruFacade;
 import org.vividus.mobitru.client.exception.MobitruOperationException;
 
@@ -47,11 +48,11 @@ class MobitruCapabilitiesAdjusterTests
     private static final String APPIUM_UDID = "appium:udid";
 
     @Mock private MobitruFacade mobitruFacade;
-
+    @Mock private InstallApplicationOptions installApplicationOptions;
     @InjectMocks private MobitruCapabilitiesAdjuster mobitruCapabilitiesConfigurer;
 
     @Test
-    void shouldTakeDeviceInstallAnAppAndSetUdidToTheCapabilities() throws MobitruOperationException
+    void shouldTakeDeviceAndInstallAnApp() throws MobitruOperationException
     {
         mobitruCapabilitiesConfigurer.setAppFileName(STEAM_APK);
         var capabilities = mock(DesiredCapabilities.class);
@@ -59,7 +60,7 @@ class MobitruCapabilitiesAdjusterTests
         var ordered = Mockito.inOrder(mobitruFacade);
         assertEquals(Map.of(APPIUM_UDID, UDID), mobitruCapabilitiesConfigurer.getExtraCapabilities(capabilities));
         ordered.verify(mobitruFacade).takeDevice(capabilities);
-        ordered.verify(mobitruFacade).installApp(UDID, STEAM_APK);
+        ordered.verify(mobitruFacade).installApp(UDID, STEAM_APK, installApplicationOptions);
         verify(mobitruFacade, never()).returnDevice(UDID);
     }
 
@@ -74,7 +75,7 @@ class MobitruCapabilitiesAdjusterTests
         var ordered = Mockito.inOrder(mobitruFacade);
         assertEquals(Map.of(), mobitruCapabilitiesConfigurer.getExtraCapabilities(capabilities));
         ordered.verify(mobitruFacade).takeDevice(capabilities);
-        ordered.verify(mobitruFacade).installApp(UDID, STEAM_APK);
+        ordered.verify(mobitruFacade).installApp(UDID, STEAM_APK, installApplicationOptions);
         verify(mobitruFacade, never()).returnDevice(UDID);
     }
 
@@ -85,7 +86,7 @@ class MobitruCapabilitiesAdjusterTests
         var capabilities = new DesiredCapabilities();
         var exception = new MobitruOperationException(UDID);
         when(mobitruFacade.takeDevice(capabilities)).thenReturn(UDID);
-        doThrow(exception).when(mobitruFacade).installApp(UDID, STEAM_APK);
+        doThrow(exception).when(mobitruFacade).installApp(UDID, STEAM_APK, installApplicationOptions);
         var iae = assertThrows(IllegalStateException.class, () -> mobitruCapabilitiesConfigurer.adjust(capabilities));
         verify(mobitruFacade).returnDevice(UDID);
         assertEquals(exception, iae.getCause());
@@ -97,8 +98,7 @@ class MobitruCapabilitiesAdjusterTests
         var capabilities = new DesiredCapabilities();
         var exception = new MobitruOperationException(UDID);
         when(mobitruFacade.takeDevice(capabilities)).thenThrow(exception);
-        var iae = assertThrows(IllegalStateException.class,
-            () -> mobitruCapabilitiesConfigurer.adjust(capabilities));
+        var iae = assertThrows(IllegalStateException.class, () -> mobitruCapabilitiesConfigurer.adjust(capabilities));
         verify(mobitruFacade, never()).returnDevice(UDID);
         assertEquals(exception, iae.getCause());
     }
@@ -110,11 +110,10 @@ class MobitruCapabilitiesAdjusterTests
         var capabilities = new DesiredCapabilities();
         var exception = new MobitruOperationException(UDID);
         when(mobitruFacade.takeDevice(capabilities)).thenReturn(UDID);
-        doThrow(exception).when(mobitruFacade).installApp(UDID, STEAM_APK);
+        doThrow(exception).when(mobitruFacade).installApp(UDID, STEAM_APK, installApplicationOptions);
         var secondException = new MobitruOperationException(UDID);
         doThrow(secondException).when(mobitruFacade).returnDevice(UDID);
-        var uie = assertThrows(IllegalStateException.class,
-            () -> mobitruCapabilitiesConfigurer.adjust(capabilities));
+        var uie = assertThrows(IllegalStateException.class, () -> mobitruCapabilitiesConfigurer.adjust(capabilities));
         assertSame(secondException, uie.getCause());
     }
 }

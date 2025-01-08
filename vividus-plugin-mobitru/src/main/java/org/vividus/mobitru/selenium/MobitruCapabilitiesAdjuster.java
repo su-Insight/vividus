@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.vividus.mobitru.selenium;
 import java.util.Map;
 
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.vividus.mobitru.client.InstallApplicationOptions;
 import org.vividus.mobitru.client.MobitruFacade;
 import org.vividus.mobitru.client.exception.MobitruOperationException;
 import org.vividus.selenium.DesiredCapabilitiesAdjuster;
@@ -28,10 +29,12 @@ public class MobitruCapabilitiesAdjuster extends DesiredCapabilitiesAdjuster
     private static final String APPIUM_UDID = "appium:udid";
     private final MobitruFacade mobitruFacade;
 
+    private final InstallApplicationOptions installApplicationOptions;
     private String appFileName;
 
-    public MobitruCapabilitiesAdjuster(MobitruFacade mobitruFacade)
+    public MobitruCapabilitiesAdjuster(InstallApplicationOptions installApplicationOptions, MobitruFacade mobitruFacade)
     {
+        this.installApplicationOptions = installApplicationOptions;
         this.mobitruFacade = mobitruFacade;
     }
 
@@ -42,7 +45,7 @@ public class MobitruCapabilitiesAdjuster extends DesiredCapabilitiesAdjuster
         try
         {
             deviceId = mobitruFacade.takeDevice(desiredCapabilities);
-            mobitruFacade.installApp(deviceId, appFileName);
+            mobitruFacade.installApp(deviceId, appFileName, installApplicationOptions);
             Map<String, Object> capabilities = desiredCapabilities.asMap();
             if (capabilities.containsKey(APPIUM_UDID) || capabilities.containsKey("udid"))
             {

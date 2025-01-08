@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.vividus.mobileapp.steps;
 
 import static io.appium.java_client.CommandExecutionHelper.execute;
-import static io.appium.java_client.MobileCommand.prepareArguments;
 import static java.util.Map.entry;
 import static org.vividus.selenium.type.CapabilitiesValueTypeAdjuster.adjustType;
 
@@ -25,6 +24,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jbehave.core.annotations.Given;
@@ -114,8 +114,11 @@ public class ApplicationSteps
     }
 
     /**
-     * Terminates the application if it's running. The session will not be closed.
-     * @param bundleId bundle identifier of the application to terminate.
+     * Terminates the running application on the device/emulator/simulator and navigates to the home device screen
+     * (the remote session will not be closed). If the application is not running, new failed assertion is recorded.
+     *
+     * @param bundleId "Package name" for Android or "Bundle identifier" from "Plist.info" for iOS of the application
+     *                to terminate.
      */
     @When("I terminate application with bundle identifier `$bundleId`")
     public void terminateApp(String bundleId)
@@ -152,15 +155,13 @@ public class ApplicationSteps
     {
         ExecutesMethod executesMethod = webDriverProvider.getUnwrapped(ExecutesMethod.class);
 
-        String[] params = settings.stream()
-                                  .map(NamedEntry::getName)
-                                  .toArray(String[]::new);
-        Object[] values = settings.stream()
-                                  .map(NamedEntry::getValue)
-                                  .map(v -> NumberUtils.isDigits(v) ? Long.valueOf(v) : adjustType(v))
-                                  .toArray();
+        Map<String, Object> settingsMap = settings.stream().collect(
+                Collectors.toMap(NamedEntry::getName, namedEntry -> {
+                    String value = namedEntry.getValue();
+                    return NumberUtils.isDigits(value) ? Long.valueOf(value) : adjustType(value);
+                }));
 
-        execute(executesMethod, entry("setSettings", prepareArguments("settings", prepareArguments(params, values))));
+        execute(executesMethod, entry("setSettings", Map.of("settings", settingsMap)));
     }
 
     /**

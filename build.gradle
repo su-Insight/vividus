@@ -1,5 +1,5 @@
 plugins {
-  id 'org.sonarqube' version '4.4.1.3373'
+  id 'org.sonarqube' version '5.0.0.4638'
 }
 
 ext.buildSystemPath = file("${System.env.VIVIDUS_BUILD_SYSTEM_HOME?:buildSystemRootDir}/${buildSystemVersion}")
@@ -68,10 +68,11 @@ project.description = 'Vividus'
 
 ext {
     versions = [
-        jbehave:                '6.0.0-alpha.2',
+        jbehave:                '6.0.0-alpha.3',
         powermock:              'a0be5c4bbe',
         // eyes and eyesUniversal versions should be updated and tested together
-        eyes:                   '5.64.7',
-        eyesUniversal:          '5.63.13'
+        eyes:                   '5.67.2',
+        eyesUniversal:          '5.64.3',
+        jsonPath:               '52ebb195bd'
     ]
 }

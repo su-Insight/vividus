@@ -20,6 +20,7 @@ dependencies {
     implementation project(':vividus-plugin-azure-event-grid')
     implementation project(':vividus-plugin-azure-functions')
     implementation project(':vividus-plugin-azure-resource-manager')
+    implementation project(':vividus-plugin-azure-service-bus')
     implementation project(':vividus-plugin-azure-storage-account')
     implementation project(':vividus-plugin-azure-storage-queue')
     implementation project(':vividus-plugin-browserstack')
@@ -50,6 +51,6 @@ dependencies {
     implementation project(':vividus-plugin-xml')
     implementation project(':vividus-plugin-yaml')
 
-    implementation(group: 'net.sourceforge.csvjdbc', name: 'csvjdbc', version: '1.0.41')
+    implementation(group: 'net.sourceforge.csvjdbc', name: 'csvjdbc', version: '1.0.42')
     implementation(group: 'com.h2database', name: 'h2', version: '2.2.224')
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,10 @@
 
 package org.vividus.selenium.logging;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.logging.LogEntries;
@@ -37,43 +34,37 @@ public final class BrowserLogManager
     {
     }
 
-    public static LogEntries getLog(WebDriver driver)
+    public static Set<LogEntry> getFilteredLog(WebDriver webDriver, Set<BrowserLogLevel> logLevelsToInclude)
     {
-        return getLog(driver, false).get();
+        if (doesWebDriverSupportLogApi(webDriver))
+        {
+            LogEntries log = getLog(webDriver);
+            return logLevelsToInclude.stream()
+                    .map(BrowserLogLevel::getLevel)
+                    .map(Level::intValue)
+                    .flatMap(level -> log.getAll().stream().filter(logEntry -> level == logEntry.getLevel().intValue()))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+        throw new IllegalStateException("Browser does not support retrieval of browser logs");
     }
 
-    public static Set<LogEntry> getFilteredLog(WebDriver driver, Collection<BrowserLogLevel> logLevelsToInclude)
+    public static void resetBuffer(WebDriver webDriver)
     {
-        LogEntries log = getLog(driver);
-        return logLevelsToInclude.stream()
-                .map(BrowserLogLevel::getLevel)
-                .flatMap(level -> filter(log, level))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (doesWebDriverSupportLogApi(webDriver))
+        {
+            getLog(webDriver);
+        }
     }
 
-    public static void resetBuffer(WebDriver driver, boolean ignoreUnsupportedDrivers)
+    private static LogEntries getLog(WebDriver webDriver)
     {
-        getLog(driver, ignoreUnsupportedDrivers);
+        return webDriver.manage().logs().get(LogType.BROWSER);
     }
 
-    private static Optional<LogEntries> getLog(WebDriver driver, boolean ignoreUnsupportedDrivers)
+    private static boolean doesWebDriverSupportLogApi(WebDriver webDriver)
     {
         // The Selenium log API isn't supported: https://github.com/w3c/webdriver/issues/406
         // Safari: https://developer.apple.com/documentation/webkit/macos_webdriver_commands_for_safari_11_1_and_earlier
-        if (WebDriverManager.isBrowserAnyOf(driver, Browser.FIREFOX, Browser.IE, Browser.SAFARI))
-        {
-            if (ignoreUnsupportedDrivers)
-            {
-                return Optional.empty();
-            }
-            throw new IllegalStateException("Browser does not support retrieval of browser logs");
-        }
-        return Optional.of(driver.manage().logs().get(LogType.BROWSER));
-    }
-
-    private static Stream<LogEntry> filter(LogEntries log, Level level)
-    {
-        int levelValue = level.intValue();
-        return log.getAll().stream().filter(logEntry -> levelValue == logEntry.getLevel().intValue());
+        return !WebDriverManager.isBrowserAnyOf(webDriver, Browser.FIREFOX, Browser.IE, Browser.SAFARI);
     }
 }

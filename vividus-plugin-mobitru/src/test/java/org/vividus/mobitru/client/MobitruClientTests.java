@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -169,23 +169,32 @@ class MobitruClientTests
         }
     }
 
-    @Test
-    void shouldInstallApp() throws IOException, MobitruOperationException
+    @ParameterizedTest
+    @CsvSource({
+            "true, true, noResign=false&doInjection=true",
+            "true, false, noResign=false&doInjection=false",
+            "false, true, noResign=true&doInjection=true",
+            "false, false, noResign=true&doInjection=false"
+    })
+    void shouldInstallApp(boolean resign, boolean injection, String urlQuery)
+            throws IOException, MobitruOperationException
     {
         var builder = mock(HttpRequestBuilder.class);
         ClassicHttpRequest httpRequest = mock();
+        var installApplicationOptions = new InstallApplicationOptions(resign, injection);
         try (MockedStatic<HttpRequestBuilder> builderMock = Mockito.mockStatic(HttpRequestBuilder.class))
         {
             builderMock.when(HttpRequestBuilder::create).thenReturn(builder);
             when(builder.withEndpoint(ENDPOINT)).thenReturn(builder);
             when(builder.withHttpMethod(HttpMethod.GET)).thenReturn(builder);
-            when(builder.withRelativeUrl("/billing/unit/vividus/automation/api/storage/install/udid/fileid"))
-                    .thenReturn(builder);
+            when(builder.withRelativeUrl(
+                    "/billing/unit/vividus/automation/api/storage/install/udid/fileid?" + urlQuery)).thenReturn(
+                    builder);
             when(builder.build()).thenReturn(httpRequest);
             when(httpClient.execute(httpRequest)).thenReturn(httpResponse);
             when(httpResponse.getResponseBody()).thenReturn(RESPONSE);
             when(httpResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
-            mobitruClient.installApp("udid", "fileid");
+            mobitruClient.installApp("udid", "fileid", installApplicationOptions);
             verify(httpClient).execute(httpRequest);
         }
     }

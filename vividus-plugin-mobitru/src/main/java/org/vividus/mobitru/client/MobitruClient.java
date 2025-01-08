@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,9 +72,12 @@ public class MobitruClient
         executeRequest(DEVICE_PATH + "/" + deviceId, HttpMethod.DELETE, UnaryOperator.identity(), HttpStatus.SC_OK);
     }
 
-    public void installApp(String deviceId, String appId) throws MobitruOperationException
+    public void installApp(String deviceId, String appId, InstallApplicationOptions options)
+            throws MobitruOperationException
     {
-        executeGet(String.format("/storage/install/%s/%s", deviceId, appId), HttpStatus.SC_CREATED);
+        String url = String.format("/storage/install/%s/%s?noResign=%s&doInjection=%s", deviceId, appId,
+                !options.resignIosApp(), options.injectionEnabled());
+        executeGet(url, HttpStatus.SC_CREATED);
     }
 
     private byte[] executeGet(String relativeUrl, int expectedResponseCode) throws MobitruOperationException
