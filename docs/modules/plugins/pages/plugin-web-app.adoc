@@ -930,6 +930,41 @@ Then $storageType storage item with key `$key` does not exist
 Then local storage item with key `token` does not exist
 ----
 
+==== Remove web storage item
+
+Removes an item with the key from web storage.
+
+[source,gherkin]
+----
+When I remove item with key `$key` from $storageType storage
+----
+
+* `$key` - The key of the item to remove.
+* `$storageType` - One of the web storage mechanisms: either `local` or `session`.
+
+.Remove item with 'token' key from web storage
+[source,gherkin]
+----
+When I remove item with key `token` from session storage
+----
+
+==== Clear web storage
+
+Removes all items from web storage.
+
+[source,gherkin]
+----
+When I clear $storageType storage
+----
+
+* `$storageType` - One of the web storage mechanisms: either `local` or `session`.
+
+.Clear session storage
+[source,gherkin]
+----
+When I clear session storage
+----
+
 :given-step: Given I am on page with URL `https://www.google.com/search?q=vividus`
 include::partial$proxy-steps.adoc[]
 
@@ -1135,6 +1170,27 @@ Then `${response}` matcher `.+`
 
 === Element wait steps
 
+==== Wait for element appearance with timeout
+
+Waits for element appearance with desired timeout.
+
+WARNING: It's forbidden to use <<_visibility_types>> in the locator.
+
+[source,gherkin]
+----
+Then element located by `$locator` appears in `$timeout`
+----
+
+* `$locator` - The <<_locator,locator>> used to find element.
+* `$timeout` - The maximum time to wait for the element appearance in {durations-format-link} format.
+
+.Click on the button and waiting for element appearance for 2 minutes
+[source,gherkin]
+----
+When I click on element located by `buttonName(Show element)`
+Then element located by 'id(element-to-show)' appears in 'PT2M'
+----
+
 ==== Wait for element disappearance with timeout
 
 Waits for element disappearance with desired timeout.
@@ -1250,6 +1306,91 @@ When I wait until scroll is finished
 Then page is scrolled to element located by `id(footerElement)`
 ----
 
+=== Script Steps
+
+The Script Steps verify the presence of JavaScript files in the HTML source code of an active page.
+
+==== Check the presence of script resource
+
+[WARNING]
+====
+This step is deprecated and will be removed in VIVIDUS 0.7.0.
+Please see the replacement pattern below:
+[source,gherkin]
+----
+Then number of elements found by `xpath(.//script[contains(@src()='<jsFileName>']):a` is equal to `1`
+----
+====
+
+Checks script (an element with the `<script>` tag) with the specified path (`@src` attribute) is included on the page.
+
+[source,gherkin]
+----
+Then a javascript file with the name '$jsFileName' is included in the source code
+----
+
+* `$jsFileName` - The part of the script resource URL from the `@src` attribute.
+
+.Checks if the javascript with the 'script.js' filename exists in the page source code
+[source,gherkin]
+----
+Then a javascript file with the name 'script.js' is included in the source code.
+----
+
+==== Check the presence of script code
+
+[WARNING]
+====
+This step is deprecated and will be removed in VIVIDUS 0.7.0.
+Please see the replacement pattern below:
+[source,gherkin]
+----
+Then number of elements found by `xpath(.//script[text()='<jsText>']):a` is equal to `1`
+----
+====
+
+Checks the page contains a script (an element with the `<script>` tag) whose content is equal to the specified text.
+
+[source,gherkin]
+----
+Then a javascript with the text '$jsText' is included in the source code
+----
+
+* `$jsText` - The expected text to be equal to the text of a `<script>` tag.
+
+.Checks if the JavaScript code equals to the expected one
+[source,gherkin]
+----
+Then a javascript with the text 'document.getElementById("demo-for-script").innerHTML = "Hello JavaScript!";' is included in the source code
+----
+
+==== Check script contains code
+
+[WARNING]
+====
+This step is deprecated and will be removed in VIVIDUS 0.7.0.
+Please see the replacement pattern below:
+[source,gherkin]
+----
+Then number of elements found by `xpath(.//script[contains(text(),'<jsTextPart>')]):a` is equal to `1`
+----
+====
+
+Checks the page contains a script (an element with the `<script>` tag) whose content contains the specified text.
+
+[source,gherkin]
+----
+Then a javascript with the textpart '$jsTextPart' is included in the source code
+----
+
+* `$jsTextPart` - The expected text to be contained in the text of a `<script>` tag.
+
+.Checks if the JavaScript code contains 'Hello JavaScript'
+[source,gherkin]
+----
+Then a javascript with the textpart 'Hello JavaScript' is included in the source code
+----
+
 === Set Variable Steps
 
 ==== Save HTML table to the variable
@@ -1295,6 +1436,27 @@ When I save number of open tabs to $scopes variable `$variableName`
 [source,gherkin]
 ----
 When I save number of open tabs to SCENARIO variable `count`
+----
+
+==== Save the CSS property value of the element
+
+Saves the CSS property value of the element located by locator into a variable.
+
+[source,gherkin]
+----
+When I save `$cssProperty` CSS property value of element located by `$locator` to $scopes variable `$variableName`
+----
+
+* `$cssProperty` - The name of an https://www.w3schools.com/cssref/index.php[CSS property].
+* `$locator` - The <<_locator,locator>> used to find the element to get the CSS property.
+* `$scopes` - xref:commons:variables.adoc#_scopes[The comma-separated set of the variables scopes].
+* `$variableName` - The name of the variable to save the CSS property value.
+
+.Save the CSS property value of the table
+[source,gherkin]
+----
+When I save `padding` CSS property value of element located by `xpath(//table)` to scenario variable `paddingValue`
+Then `${paddingValue}` is equal to `5px`
 ----
 
 === Alert Steps

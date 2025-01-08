@@ -25,6 +25,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.vividus.context.VariableContext;
 import org.vividus.html.HtmlLocatorType;
+import org.vividus.html.JsoupUtils;
 import org.vividus.softassert.ISoftAssert;
 import org.vividus.steps.ComparisonRule;
 import org.vividus.variable.VariableScope;
@@ -42,7 +43,7 @@ public class HtmlSteps
 
     private Optional<Element> assertElementByLocatorExists(String html, HtmlLocatorType locatorType, String locator)
     {
-        Elements elements = locatorType.findElements(html, locator);
+        Elements elements = locatorType.findElements(JsoupUtils.getDocument(html), locator);
         if (assertElements(locatorType, locator, ComparisonRule.EQUAL_TO, 1, elements))
         {
             return Optional.of(elements.first());
@@ -74,7 +75,7 @@ public class HtmlSteps
     public boolean doesElementByLocatorExist(HtmlLocatorType htmlLocatorType,
             String htmlLocator, String html, ComparisonRule comparisonRule, int number)
     {
-        Elements elements = htmlLocatorType.findElements(html, htmlLocator);
+        Elements elements = htmlLocatorType.findElements(JsoupUtils.getDocument(html), htmlLocator);
         return assertElements(htmlLocatorType, htmlLocator, comparisonRule, number, elements);
     }
 
@@ -145,5 +146,23 @@ public class HtmlSteps
     {
         assertElementByLocatorExists(html, htmlLocatorType, htmlLocator)
             .ifPresent(e -> variableContext.putVariable(scopes, variableName, dataType.get(e)));
+    }
+
+    /**
+     * Saves the number of elements found by locator to a variable.
+     *
+     * @param htmlLocatorType The <b>CSS selector</b> or <b>XPath</b>
+     * @param htmlLocator     The locator to locate element in HTML document
+     * @param html            The HTML document
+     * @param scopes          The set of variable scopes (comma separated list of scopes e.g.: STORY, NEXT_BATCHES)
+     * @param variableName    The variable name
+     */
+    @When("I save number of elements found by $htmlLocatorType `$htmlLocator` in HTML `$html` to $scopes variable"
+            + " `$variableName`")
+    public void saveNumberOfElements(HtmlLocatorType htmlLocatorType, String htmlLocator, String html,
+            Set<VariableScope> scopes, String variableName)
+    {
+        Elements elements = htmlLocatorType.findElements(JsoupUtils.getDocument(html), htmlLocator);
+        variableContext.putVariable(scopes, variableName, elements.size());
     }
 }
