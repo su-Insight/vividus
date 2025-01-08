@@ -43,7 +43,7 @@ jobs:
         fetch-depth: 0
 
     - name: Cache ~/.gradle/caches
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.gradle/caches
         key: ${{ runner.os }}-gradle-caches-${{ hashFiles('**/*.gradle') }}
@@ -51,7 +51,7 @@ jobs:
           ${{ runner.os }}-gradle-caches-
 
     - name: Cache ~/.gradle/wrapper
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.gradle/wrapper
         key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('vividus-build-system/**/wrapper/gradle-wrapper.properties') }}
@@ -60,8 +60,9 @@ jobs:
 
     - name: Cache tests history
       if: github.ref == 'refs/heads/master' && matrix.platform == 'ubuntu-latest'
-      uses: pat-s/always-upload-cache@v3.0.11
+      uses: actions/cache@v4
       with:
+        save-always: true
         path: vividus-tests/output/history
         key: tests-history-cache-${{ github.sha }}
         restore-keys: |
@@ -110,14 +111,14 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ !github.event.pull_request.head.repo.fork || github.ref == 'refs/heads/master'}}
-      uses: codecov/codecov-action@v3.1.4
+      uses: codecov/codecov-action@v4.1.0
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to Codecov
       if: ${{ github.event.pull_request.head.repo.fork }}
-      uses: codecov/codecov-action@v3.1.4
+      uses: codecov/codecov-action@v4.1.0
 
     - name: VIVIDUS tasks validation
       run: |
@@ -356,12 +357,13 @@ jobs:
 
           ./gradlew :vividus-tests:debugStories -Pvividus.configuration.suites=health_check \
                                                 -Pvividus.configuration.profiles=mobitru/web,web/phone/iphone \
-                                                -Pvividus.selenium.grid.capabilities.appium\:platformVersion=16.1 \
+                                                -Pvividus.selenium.grid.capabilities.appium\:platformVersion=17 \
                                                 -Pvividus.selenium.grid.username=${MOBITRU_USER} \
                                                 -Pvividus.selenium.grid.password=${MOBITRU_KEY}
 
           ./gradlew :vividus-tests:debugStories -Pvividus.configuration.suites=health_check \
                                                 -Pvividus.configuration.profiles=mobitru/web,web/phone/android \
+                                                -Pvividus.selenium.grid.capabilities.appium\:platformVersion=14 \
                                                 -Pvividus.selenium.grid.username=${MOBITRU_USER} \
                                                 -Pvividus.selenium.grid.password=${MOBITRU_KEY}
         else
