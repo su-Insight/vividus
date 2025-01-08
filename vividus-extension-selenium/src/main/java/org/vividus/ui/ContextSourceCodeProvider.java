@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package org.vividus.ui.variable;
+package org.vividus.ui;
 
-import org.openqa.selenium.Rectangle;
-import org.vividus.ui.context.UiContext;
+import java.util.Map;
 
-@Deprecated(forRemoval = true, since = "0.6.6")
-public class SearchContextYCoordinateDynamicVariable extends AbstractSearchContextRectangleDynamicVariable
+public interface ContextSourceCodeProvider
 {
-    public SearchContextYCoordinateDynamicVariable(UiContext uiContext)
-    {
-        super("context-y-coordinate", "y", uiContext, Rectangle::getY);
-    }
+    String APPLICATION_SOURCE_CODE = "Application source code";
+
+    Map<String, String> getSourceCode();
 }
