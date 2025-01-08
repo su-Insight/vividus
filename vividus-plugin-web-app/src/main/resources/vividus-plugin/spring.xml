@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:context="http://www.springframework.org/schema/context"
     xmlns:util="http://www.springframework.org/schema/util"
        xsi:schemaLocation="
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd"
         default-lazy-init="true" profile="web_selenium">
-
-    <context:component-scan base-package="org.vividus.converter.ui.web" />
 
     <bean id="timeoutConfigurer" class="org.vividus.selenium.TimeoutConfigurer">
         <property name="pageLoadTimeout" value="${web.timeouts.page-load}" />
@@ -18,8 +14,13 @@
 
     <bean id="webDriverFactory" class="org.vividus.selenium.WebDriverFactory" parent="parentWebDriverFactory">
         <constructor-arg index="0" value="${selenium.grid.enabled}"/>
+        <constructor-arg>
+            <bean factory-bean="propertyMapper" factory-method="readValues">
+                <constructor-arg value="web-application.basic-authentication." />
+                <constructor-arg value="org.vividus.selenium.authentication.BasicAuthCredentials" />
+            </bean>
+        </constructor-arg>
         <property name="webDriverType" value="${selenium.browser}" />
-        <property name="webDriverEventListeners" ref="webDriverEventListener-EventHandlers"/>
     </bean>
 
     <bean class="org.vividus.selenium.screenshot.WebCoordsProvider" />
@@ -81,7 +82,7 @@
 
     <bean id="cssSelectorFactory" class="org.vividus.ui.web.action.CssSelectorFactory" />
 
-    <bean id="webStorageManager" class="org.vividus.ui.web.storage.WebStorageManager" />
+    <bean class="org.vividus.ui.web.storage.WebStorage" />
 
     <bean id="abstractWebElementSearchAction" class="org.vividus.ui.web.action.search.AbstractWebElementSearchAction"
           parent="abstractElementAction" abstract="true" />
@@ -166,6 +167,8 @@
     <bean id="elementValidations" class="org.vividus.steps.ui.web.validation.ElementValidations" />
     <bean id="focusValidations" class="org.vividus.steps.ui.web.validation.FocusValidations" />
 
+    <bean class="org.vividus.ui.web.performance.PerformanceMetrics" />
+
     <bean id="webDriverSetupSteps" class="org.vividus.steps.WebDriverSetupSteps">
         <constructor-arg index="0" value="${web-application.session-scope}" />
     </bean>
@@ -195,66 +198,43 @@
         <property name="keepUserInfoForProtocolRedirects" value="${web.steps.page.keep-user-info-for-protocol-redirects}" />
     </bean>
 
-    <bean id="setContextSteps" class="org.vividus.steps.ui.web.SetContextSteps" />
-    <bean id="sliderSteps" class="org.vividus.steps.ui.web.SliderSteps" />
+    <bean id="actionsSequenceSteps" class="org.vividus.steps.ui.web.ActionsSequenceSteps" />
+    <bean id="browserSteps" class="org.vividus.steps.ui.web.BrowserSteps" />
+    <bean id="performanceSteps" class="org.vividus.steps.ui.web.PerformanceSteps" />
+    <bean id="mobileEmulationSteps" class="org.vividus.steps.ui.web.devtools.MobileEmulationSteps" />
     <bean id="scriptSteps" class="org.vividus.steps.ui.web.ScriptSteps" />
     <bean id="scrollSteps" class="org.vividus.steps.ui.web.ScrollSteps" />
+    <bean id="setContextSteps" class="org.vividus.steps.ui.web.SetContextSteps" />
     <bean id="setVariableSteps" class="org.vividus.steps.ui.web.SetVariableSteps" />
+    <bean id="sliderSteps" class="org.vividus.steps.ui.web.SliderSteps" />
+    <bean id="textValidationSteps" class="org.vividus.steps.ui.web.TextValidationSteps" />
     <bean id="videoPlayerSteps" class="org.vividus.steps.ui.web.VideoPlayerSteps" />
     <bean id="waitSteps" class="org.vividus.steps.ui.web.WaitSteps" />
-    <bean id="textValidationSteps" class="org.vividus.steps.ui.web.TextValidationSteps" />
-
-    <bean id="performanceSteps" class="org.vividus.steps.ui.web.PerformanceSteps" >
-        <constructor-arg index="0">
-            <bean class="org.vividus.ui.web.performance.PerformanceMetrics" />
-        </constructor-arg>
-    </bean>
-
     <bean id="windowSteps" class="org.vividus.steps.ui.web.WindowSteps" />
-
-    <bean id="actionsSequenceSteps" class="org.vividus.steps.ui.web.ActionsSequenceSteps" />
-
-    <bean id="browserSteps" class="org.vividus.steps.ui.web.BrowserSteps" />
 
     <bean id="webUiVividusSetupSteps" class="org.vividus.steps.WebUiVividusSetupSteps">
         <property name="windowsStrategy" value="${selenium.windows-strategy}" />
     </bean>
 
-    <bean id="mobileEmulationSteps" class="org.vividus.steps.ui.web.devtools.MobileEmulationSteps" />
-
     <bean class="org.vividus.ui.web.monitor.PublishingWebScreenshotOnFailureMonitor"
           parent="abstractPublishingScreenshotOnFailureMonitor"/>
 
-    <bean class="org.vividus.ui.web.listener.WebSourceCodePublishingOnFailureListener" parent="abstractSourceCodePublishngOnFailureListener" lazy-init="false" />
+    <bean class="org.vividus.selenium.WebContextSourceCodeProvider" />
+
+    <bean class="org.vividus.ui.listener.SourceCodePublishingOnFailureListener" lazy-init="false">
+        <property name="publishSourceOnFailure" value="${ui.publish-source-on-failure}" />
+        <property name="format" value="HTML" />
+    </bean>
 
     <bean class="org.vividus.selenium.BrowserWindowSizeListener" lazy-init="false">
          <property name="webDriverManager" ref="webDriverManager" />
     </bean>
-
-    <bean id="webDriverEventListener-EventHandlers" class="org.vividus.spring.ListMergerFactoryBean">
-        <property name="lists">
-            <list>
-                <ref bean="webDriverEventListener-CustomEventHandlers" />
-                <list>
-                    <bean class="org.vividus.ui.web.listener.AlertHandlingPageLoadListener" lazy-init="false">
-                        <property name="alertHandlingOptions" value="${selenium.alert-strategy}" />
-                    </bean>
-                    <bean class="org.vividus.ui.web.listener.WebUiContextListener" lazy-init="false">
-                        <property name="uiContext" ref="uiContext" />
-                    </bean>
-                    <bean class="org.vividus.ui.web.listener.PerformanceMetricsListener" />
-                </list>
-            </list>
-        </property>
-    </bean>
-    <util:list id="webDriverEventListener-CustomEventHandlers" />
 
     <bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
         <property name="converters">
             <set>
                 <bean class="org.vividus.spring.StringToLocatorConverter" />
                 <bean class="org.vividus.spring.StringToLocatorSetConverter" />
-                <bean class="org.vividus.spring.StringToLocaleConverter"/>
                 <bean class="org.vividus.spring.StringToFormatConverter" />
             </set>
         </property>
@@ -271,7 +251,12 @@
     <bean class="org.vividus.ui.web.action.WebAtomicActionFactories$KeyDown" />
     <bean class="org.vividus.ui.web.action.WebAtomicActionFactories$KeyUp" />
 
-    <bean id="browserLogCleanningListener" class="org.vividus.steps.ui.web.listener.BrowserLogCleanningListener" />
+    <bean class="org.vividus.ui.web.listener.BrowserLogCleaningListener.Factory"/>
+    <bean class="org.vividus.ui.web.listener.AlertHandlingListener.Factory">
+        <constructor-arg index="0" value="${selenium.alert-strategy}"/>
+    </bean>
+    <bean class="org.vividus.ui.web.listener.PerformanceMetricsListener.Factory" />
+    <bean class="org.vividus.ui.web.listener.WebUiContextListener.Factory" />
 
     <util:list id="stepBeanNames-WebUi" value-type="java.lang.String">
         <idref bean="webDriverSetupSteps" />
@@ -317,6 +302,10 @@
             <bean class="org.vividus.ui.web.converter.DimensionPropertyEditor" />
         </entry>
     </util:map>
+
+    <bean class="org.vividus.ui.web.converter.ExamplesTableToDefaultHttpHeadersConverter" />
+    <bean class="org.vividus.ui.web.converter.ExamplesTableToWebScreenshotConfigurationConverter" />
+    <bean class="org.vividus.ui.web.converter.StringToDimensionParameterConverter" />
 
     <bean id="current-page-url" class="org.vividus.ui.web.variable.CurrentPageUrlDynamicVariable"/>
     <bean id="browser-window-height" class="org.vividus.ui.web.variable.BrowserWindowHeightDynamicVariable"/>

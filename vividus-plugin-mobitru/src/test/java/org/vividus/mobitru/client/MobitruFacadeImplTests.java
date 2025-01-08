@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,7 +69,6 @@ class MobitruFacadeImplTests
     private static final String CAPABILITIES_JSON = CAPABILITIES_JSON_PREFIX
             + "\"platformVersion\":\"12\",\"deviceName\":\"SAMSUNG SM-G998B\",\"udid\":\"Z3CT103D2DZ\"}}";
     private static final Map<String, String> DEVICE_SEARCH_PARAMETERS = Map.of("type", PHONE);
-    private static final boolean DEFAULT_RESIGN_VALUE = true;
 
     private static final TestLogger LOGGER = TestLoggerFactory.getTestLogger(MobitruFacadeImpl.class);
 
@@ -182,8 +181,9 @@ class MobitruFacadeImplTests
         when(mobitruClient.getArtifacts()).thenReturn(
                 "[{\"realName\" : \"test.apk\", \"id\" : \"1\"}, {\"realName\" : \"app.apk\", \"id\" : \"2\"}]"
             .getBytes(StandardCharsets.UTF_8));
-        mobitruFacadeImpl.installApp(UDID, "app.apk", DEFAULT_RESIGN_VALUE);
-        verify(mobitruClient).installApp(UDID, "2", DEFAULT_RESIGN_VALUE);
+        InstallApplicationOptions options = mock();
+        mobitruFacadeImpl.installApp(UDID, "app.apk", options);
+        verify(mobitruClient).installApp(UDID, "2", options);
     }
 
     @Test
@@ -193,12 +193,13 @@ class MobitruFacadeImplTests
                 ("[{\"realName\" : \"123.apk\", \"id\" : \"1\", \"uploadedBy\" : \"Mithrandir\", \"id\" : \"1\","
                         + " \"uploadedAt\" : \"33189300000\"}]")
                         .getBytes(StandardCharsets.UTF_8));
+        InstallApplicationOptions options = mock();
         var exception = assertThrows(MobitruOperationException.class,
-            () -> mobitruFacadeImpl.installApp(UDID, "starfield.apk", DEFAULT_RESIGN_VALUE));
+            () -> mobitruFacadeImpl.installApp(UDID, "starfield.apk", options));
         assertEquals("Unable to find application with the name `starfield.apk`. The available applications are: "
             + "[Application{id='1', realName='123.apk', uploadedBy='Mithrandir', uploadedAt=33189300000}]",
                 exception.getMessage());
-        verify(mobitruClient, never()).installApp(any(), any(), anyBoolean());
+        verify(mobitruClient, never()).installApp(any(), any(), any());
     }
 
     @Test
@@ -213,10 +214,11 @@ class MobitruFacadeImplTests
     void shouldWrapMapperException() throws MobitruOperationException
     {
         when(mobitruClient.getArtifacts()).thenReturn("[{".getBytes(StandardCharsets.UTF_8));
+        InstallApplicationOptions options = mock();
         var exception = assertThrows(MobitruOperationException.class,
-            () -> mobitruFacadeImpl.installApp(UDID, null, DEFAULT_RESIGN_VALUE));
+            () -> mobitruFacadeImpl.installApp(UDID, null, options));
         assertInstanceOf(IOException.class, exception.getCause());
-        verify(mobitruClient, never()).installApp(any(), any(), anyBoolean());
+        verify(mobitruClient, never()).installApp(any(), any(), any());
     }
 
     private Device createDevice(String platformVersion, String deviceName, String udid)

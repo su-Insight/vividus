@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -311,23 +311,28 @@ public final class UriUtils
                 : relativeUrl;
         try
         {
-            URI parsedRelativeUrl = URI.create(normalizedRelativeUrl);
+            String decodedFragment = extractDecodedFragment(normalizedRelativeUrl);
             if (url.isOpaque())
             {
-                return new URI(url.getScheme(), url.getSchemeSpecificPart(), parsedRelativeUrl.getFragment());
+                return new URI(url.getScheme(), url.getSchemeSpecificPart(), decodedFragment);
             }
 
-            String path = StringUtils.repeat(SLASH, indexOfFirstNonSlashChar - 1) + parsedRelativeUrl.getRawPath();
+            String parsedRelativeUrl = removeFragment(decodeUrl(normalizedRelativeUrl), decodedFragment);
+            String[] parts = StringUtils.split(parsedRelativeUrl, "?", 2);
+            String rawPath = parts.length > 0 ? parts[0] : "";
+            String query = parts.length > 1 ? parts[1] : null;
+            String path = StringUtils.repeat(SLASH, indexOfFirstNonSlashChar - 1) + rawPath;
             if (!path.isEmpty() && path.charAt(0) != '/')
             {
                 throw new IllegalArgumentException(String
                         .format("Relative path '%s' for '%s' should start with forward slash ('/')", path, url));
             }
-            String uriAsString = createUriAsString(url.getScheme(), url.getRawAuthority(), encodeNonAsciiChars(path),
-                    parsedRelativeUrl.getQuery(), parsedRelativeUrl.getFragment());
-            return new URI(uriAsString);
+            String uriAsString = createUriAsString(url.getScheme(), url.getRawAuthority(), path, query,
+                    decodedFragment);
+
+            return buildUrl(uriAsString, decodedFragment);
         }
-        catch (URISyntaxException e)
+        catch (URISyntaxException | MalformedURLException e)
         {
             throw new IllegalArgumentException(e.getMessage(), e);
         }
