@@ -13,14 +13,14 @@ dependencies {
     implementation(group: 'org.apache.httpcomponents.client5', name: 'httpclient5-win', version: "${httpClientVersion}")
     implementation project(':vividus-util')
     implementation(group: 'org.apache.commons', name: 'commons-lang3', version: '3.14.0')
-    implementation platform(group: 'org.slf4j', name: 'slf4j-bom', version: '2.0.10')
+    implementation platform(group: 'org.slf4j', name: 'slf4j-bom', version: '2.0.13')
     implementation(group: 'org.slf4j', name: 'slf4j-api')
     compileOnly(group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion)
 
-    testImplementation platform(group: 'org.junit', name: 'junit-bom', version: '5.10.1')
+    testImplementation platform(group: 'org.junit', name: 'junit-bom', version: '5.10.2')
     testImplementation(group: 'org.junit.jupiter', name: 'junit-jupiter')
     testImplementation(group: 'org.hamcrest', name: 'hamcrest', version: '2.2')
-    testImplementation platform(group: 'org.mockito', name: 'mockito-bom', version: '5.8.0')
+    testImplementation platform(group: 'org.mockito', name: 'mockito-bom', version: '5.12.0')
     testImplementation(group: 'org.mockito', name: 'mockito-junit-jupiter')
     testImplementation(group: 'com.github.valfirst', name: 'slf4j-test', version: '3.0.1')
 }
