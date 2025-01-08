@@ -18,7 +18,6 @@ package org.vividus.html;
 
 import java.util.function.BiFunction;
 
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
@@ -36,14 +35,9 @@ public enum HtmlLocatorType
         this.finder = finder;
     }
 
-    public Elements findElements(String html, String locator)
+    public Elements findElements(Document document, String locator)
     {
-        return findElements("", html, locator);
-    }
-
-    public Elements findElements(String baseUri, String html, String locator)
-    {
-        return finder.apply(Jsoup.parse(html, baseUri), locator);
+        return finder.apply(document, locator);
     }
 
     public String getDescription()

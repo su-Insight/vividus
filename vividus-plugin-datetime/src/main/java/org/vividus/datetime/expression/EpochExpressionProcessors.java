@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,12 @@
 package org.vividus.datetime.expression;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 
 import org.jbehave.core.expressions.DelegatingExpressionProcessor;
 import org.jbehave.core.expressions.SingleArgExpressionProcessor;
@@ -26,15 +30,34 @@ import org.vividus.util.DateUtils;
 
 public class EpochExpressionProcessors extends DelegatingExpressionProcessor
 {
+    private static final DateTimeFormatter ISO_DATE_TIME_WITH_MILLIS_PRECISION = DateTimeFormatter.ofPattern(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS");
+
     public EpochExpressionProcessors(DateUtils dateUtils)
     {
         super(List.of(
-            new SingleArgExpressionProcessor<>("toEpochSecond",
-                arg -> String.valueOf(dateUtils.parseDateTime(arg, DateTimeFormatter.ISO_DATE_TIME).toEpochSecond())),
-            new SingleArgExpressionProcessor<>("fromEpochSecond",
-                arg -> DateTimeFormatter.ISO_DATE_TIME.format(
-                        dateUtils.fromEpochSecond(new BigDecimal(arg).longValueExact())
-                ))
-            ));
+                toEpoch("toEpochSecond", dateUtils, ZonedDateTime::toEpochSecond),
+                toEpoch("toEpochMilli", dateUtils, zdt -> zdt.toInstant().toEpochMilli()),
+                fromEpoch("fromEpochSecond", DateTimeFormatter.ISO_DATE_TIME, dateUtils::fromEpochSecond),
+                fromEpoch("fromEpochMilli", ISO_DATE_TIME_WITH_MILLIS_PRECISION, dateUtils::fromEpochMilli)
+        ));
+    }
+
+    private static SingleArgExpressionProcessor<String> toEpoch(String funtionName, DateUtils dateUtils,
+            ToLongFunction<ZonedDateTime> converter)
+    {
+        return new SingleArgExpressionProcessor<>(funtionName, arg -> {
+            ZonedDateTime zonedDateTime = dateUtils.parseDateTime(arg, DateTimeFormatter.ISO_DATE_TIME);
+            return String.valueOf(converter.applyAsLong(zonedDateTime));
+        });
+    }
+
+    private static SingleArgExpressionProcessor<String> fromEpoch(String funtionName, DateTimeFormatter formatter,
+            LongFunction<LocalDateTime> converter)
+    {
+        return new SingleArgExpressionProcessor<>(funtionName, arg -> {
+            LocalDateTime localDateTime = converter.apply(new BigDecimal(arg).longValueExact());
+            return formatter.format(localDateTime);
+        });
     }
 }

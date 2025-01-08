@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@ package org.vividus.runner;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
@@ -78,18 +79,14 @@ public final class KnownIssueValidator
             return;
         }
 
-        File file = new File(failuresListPath);
-
-        try (FileInputStream is = new FileInputStream(file);
+        try (InputStream is = Files.newInputStream(new File(failuresListPath).toPath());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)))
         {
             print("Known Issue", "Assertion Error");
-            String line;
-            while ((line = reader.readLine()) != null)
-            {
+            reader.lines().forEach(line -> {
                 KnownIssue knownIssue = knownIssueChecker.getKnownIssue(line);
                 print(knownIssue != null ? knownIssue.getIdentifier() : "", line);
-            }
+            });
         }
     }
 
