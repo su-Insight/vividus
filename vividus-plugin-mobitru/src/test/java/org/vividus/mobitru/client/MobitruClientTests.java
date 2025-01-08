@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ class MobitruClientTests
     private static final String DEVICE_ENDPOINT = "/billing/unit/vividus/automation/api/device/deviceid";
     private static final String DEVICE_ID = "deviceid";
     private static final String TAKE_DEVICE_ENDPOINT = "/billing/unit/vividus/automation/api/device";
+    private static final String UDID = "Z3CT103D2DZ";
 
     @Mock private IHttpClient httpClient;
     @Mock private HttpResponse httpResponse;
@@ -106,6 +107,25 @@ class MobitruClientTests
             when(httpResponse.getResponseBody()).thenReturn(RESPONSE);
             when(httpResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
             assertArrayEquals(RESPONSE, mobitruClient.takeDevice(CONTENT));
+        }
+    }
+
+    @Test
+    void shouldTakeDeviceBySerial() throws IOException, MobitruOperationException
+    {
+        var builder = mock(HttpRequestBuilder.class);
+        ClassicHttpRequest httpRequest = mock();
+        try (MockedStatic<HttpRequestBuilder> builderMock = Mockito.mockStatic(HttpRequestBuilder.class))
+        {
+            builderMock.when(HttpRequestBuilder::create).thenReturn(builder);
+            when(builder.withEndpoint(ENDPOINT)).thenReturn(builder);
+            when(builder.withHttpMethod(HttpMethod.POST)).thenReturn(builder);
+            when(builder.withRelativeUrl(TAKE_DEVICE_ENDPOINT.concat("/").concat(UDID))).thenReturn(builder);
+            when(builder.build()).thenReturn(httpRequest);
+            when(httpClient.execute(httpRequest)).thenReturn(httpResponse);
+            when(httpResponse.getResponseBody()).thenReturn(RESPONSE);
+            when(httpResponse.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+            assertArrayEquals(RESPONSE, mobitruClient.takeDeviceBySerial(UDID));
         }
     }
 
@@ -171,13 +191,17 @@ class MobitruClientTests
 
     @ParameterizedTest
     @CsvSource({
-            "true,  noResign=false",
-            "false, noResign=true"
+            "true, true, noResign=false&doInjection=true",
+            "true, false, noResign=false&doInjection=false",
+            "false, true, noResign=true&doInjection=true",
+            "false, false, noResign=true&doInjection=false"
     })
-    void shouldInstallApp(boolean resign, String urlQuery) throws IOException, MobitruOperationException
+    void shouldInstallApp(boolean resign, boolean injection, String urlQuery)
+            throws IOException, MobitruOperationException
     {
         var builder = mock(HttpRequestBuilder.class);
         ClassicHttpRequest httpRequest = mock();
+        var installApplicationOptions = new InstallApplicationOptions(resign, injection);
         try (MockedStatic<HttpRequestBuilder> builderMock = Mockito.mockStatic(HttpRequestBuilder.class))
         {
             builderMock.when(HttpRequestBuilder::create).thenReturn(builder);
@@ -190,7 +214,7 @@ class MobitruClientTests
             when(httpClient.execute(httpRequest)).thenReturn(httpResponse);
             when(httpResponse.getResponseBody()).thenReturn(RESPONSE);
             when(httpResponse.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
-            mobitruClient.installApp("udid", "fileid", resign);
+            mobitruClient.installApp("udid", "fileid", installApplicationOptions);
             verify(httpClient).execute(httpRequest);
         }
     }

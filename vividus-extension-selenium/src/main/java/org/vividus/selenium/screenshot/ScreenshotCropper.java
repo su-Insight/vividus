@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ public class ScreenshotCropper
         this.webDriverProvider = webDriverProvider;
     }
 
+    @SuppressWarnings("PMD.GuardLogStatement")
     public BufferedImage crop(BufferedImage image, Optional<Coords> contextCoords,
             Map<IgnoreStrategy, Set<Locator>> ignoreStrategies, int topAdjustment)
     {
@@ -62,7 +63,9 @@ public class ScreenshotCropper
                     .flatMap(Collection::stream)
                     .collect(Collectors.collectingAndThen(
                             Collectors.toList(),
-                            webElementsToIgnore -> coordsProvider.ofElements(webDriver, webElementsToIgnore)
+                            webElementsToIgnore -> coordsProvider.ofElements(webDriver, webElementsToIgnore).stream()
+                                    .filter(i -> contextCoords.map(c -> i.y >= c.y && i.x >= c.x).orElse(true))
+                                    .collect(Collectors.toSet())
                     ));
             if (!ignore.isEmpty())
             {
