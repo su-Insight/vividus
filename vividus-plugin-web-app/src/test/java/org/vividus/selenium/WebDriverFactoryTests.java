@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.lenient;
@@ -33,48 +34,61 @@ import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import com.github.valfirst.slf4jtest.TestLogger;
 import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import com.github.valfirst.slf4jtest.TestLoggerFactoryExtension;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junitpioneer.jupiter.ClearSystemProperty;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.HasAuthentication;
 import org.openqa.selenium.HasCapabilities;
+import org.openqa.selenium.UsernameAndPassword;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriver.Options;
 import org.openqa.selenium.WebDriver.Timeouts;
-import org.openqa.selenium.WrapsDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.remote.Browser;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
-import org.openqa.selenium.support.events.EventFiringWebDriver;
-import org.openqa.selenium.support.events.WebDriverEventListener;
+import org.openqa.selenium.safari.SafariDriver;
+import org.openqa.selenium.support.decorators.Decorated;
+import org.openqa.selenium.support.events.WebDriverListener;
 import org.vividus.proxy.IProxy;
+import org.vividus.selenium.authentication.BasicAuthCredentials;
 import org.vividus.selenium.driver.TextFormattingWebDriver;
+import org.vividus.ui.web.listener.WebDriverListenerFactory;
 import org.vividus.util.json.JsonUtils;
 import org.vividus.util.property.IPropertyParser;
+import org.vividus.util.property.PropertyMappedCollection;
 
+import io.appium.java_client.android.AndroidDriver;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 @ExtendWith({ MockitoExtension.class, TestLoggerFactoryExtension.class })
@@ -92,7 +106,13 @@ class WebDriverFactoryTests
     private static final String ARGS = ARG_1 + " " + ARG_2;
     private static final String CHROME_BROWSER_NAME = Browser.CHROME.browserName();
     private static final String SAFARI_BROWSER_NAME = Browser.SAFARI.browserName();
+    private static final String EDGE_BROWSER_NAME = Browser.EDGE.browserName();
+    private static final String FIREFOX_BROWSER_NAME = Browser.FIREFOX.browserName();
+    private static final String OPERA_BROWSER_NAME = Browser.OPERA.browserName();
     private static final String DRIVER_PATH = "/path/to/driver";
+    private static final String BROWSER_NAME = "browserName";
+    private static final PropertyMappedCollection<BasicAuthCredentials> CREDENTIALS = new PropertyMappedCollection<>(
+            Map.of());
 
     private final TestLogger logger = TestLoggerFactory.getTestLogger(GenericWebDriverFactory.class);
 
@@ -109,7 +129,7 @@ class WebDriverFactoryTests
             "false,"
     })
     void testGetWebDriverWithWebDriverType(boolean proxyStarted, Boolean acceptsInsecureCerts)
-            throws IllegalAccessException
+            throws ReflectiveOperationException
     {
         var key1 = "key1";
         var key2 = "key2";
@@ -129,7 +149,7 @@ class WebDriverFactoryTests
 
     @Test
     @ClearSystemProperty(key = ChromeDriverService.CHROME_DRIVER_EXE_PROPERTY)
-    void testGetWebDriverWithCommandLineArgumentsConfigurationAndBinaryPath() throws IllegalAccessException
+    void testGetWebDriverWithCommandLineArgumentsConfigurationAndBinaryPath() throws ReflectiveOperationException
     {
         when(propertyParser.getPropertyValue(PROPERTY_FORMAT, CHROME_BROWSER_NAME, COMMAND_LINE_ARGUMENTS)).thenReturn(
                 ARGS);
@@ -145,7 +165,7 @@ class WebDriverFactoryTests
 
     @Test
     @ClearSystemProperty(key = ChromeDriverService.CHROME_DRIVER_EXE_PROPERTY)
-    void testGetWebDriverWithCommandLineArgumentsOverride() throws IllegalAccessException
+    void testGetWebDriverWithCommandLineArgumentsOverride() throws ReflectiveOperationException
     {
         when(webDriverStartContext.get(WebDriverStartParameters.COMMAND_LINE_ARGUMENTS)).thenReturn(ARGS);
         testGetChromeWebDriver(new DesiredCapabilities(), null, DRIVER_PATH, null,
@@ -155,7 +175,7 @@ class WebDriverFactoryTests
     @SuppressWarnings("unchecked")
     @Test
     @ClearSystemProperty(key = ChromeDriverService.CHROME_DRIVER_EXE_PROPERTY)
-    void testGetWebDriverWithWebDriverTypeAndExperimentalOptionsConfiguration() throws IllegalAccessException
+    void testGetWebDriverWithWebDriverTypeAndExperimentalOptionsConfiguration() throws ReflectiveOperationException
     {
         testGetChromeWebDriver(new DesiredCapabilities(), null, DRIVER_PATH,
                 "{\"mobileEmulation\": {\"deviceName\": \"iPhone 8\"}}", args -> { },
@@ -169,11 +189,13 @@ class WebDriverFactoryTests
     @SuppressWarnings("unchecked")
     private void testGetChromeWebDriver(DesiredCapabilities desiredCapabilities, String binaryPath, String driverPath,
             String experimentalOptions, Consumer<List<String>> argsValidator,
-            Consumer<ChromeOptions> capabilitiesValidator) throws IllegalAccessException
+            Consumer<ChromeOptions> capabilitiesValidator) throws ReflectiveOperationException
     {
         var webDriverType = WebDriverType.CHROME;
+        WebDriverListenerFactory webDriverListenerFactory = mock();
         var webDriverFactory = new WebDriverFactory(false, remoteWebDriverFactory, propertyParser, new JsonUtils(),
-                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer);
+                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer, CREDENTIALS,
+                List.of(webDriverListenerFactory));
         webDriverFactory.setWebDriverType(webDriverType);
         lenient().when(propertyParser.getPropertyValue(PROPERTY_FORMAT, CHROME_BROWSER_NAME, BINARY_PATH)).thenReturn(
                 binaryPath);
@@ -203,7 +225,7 @@ class WebDriverFactoryTests
             });
         }))
         {
-            testWebDriverCreation(desiredCapabilities, webDriverFactory,
+            testWebDriverCreation(desiredCapabilities, webDriverFactory, webDriverListenerFactory,
                     () -> chromeDriverMockedConstruction.constructed().get(0));
             assertEquals(driverPath, System.getProperty(ChromeDriverService.CHROME_DRIVER_EXE_PROPERTY));
             verify(timeoutConfigurer).configure(timeouts);
@@ -216,7 +238,7 @@ class WebDriverFactoryTests
     {
         var webDriverType = WebDriverType.SAFARI;
         var webDriverFactory = new WebDriverFactory(false, remoteWebDriverFactory, propertyParser, new JsonUtils(),
-                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer);
+                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer, CREDENTIALS, List.of());
         webDriverFactory.setWebDriverType(webDriverType);
         when(propertyParser.getPropertyValue(PROPERTY_FORMAT, SAFARI_BROWSER_NAME, BINARY_PATH)).thenReturn(null);
         when(webDriverStartContext.get(WebDriverStartParameters.COMMAND_LINE_ARGUMENTS)).thenReturn(ARG_1);
@@ -231,7 +253,7 @@ class WebDriverFactoryTests
     {
         var webDriverType = WebDriverType.SAFARI;
         var webDriverFactory = new WebDriverFactory(false, remoteWebDriverFactory, propertyParser, new JsonUtils(),
-                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer);
+                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer, CREDENTIALS, List.of());
         webDriverFactory.setWebDriverType(webDriverType);
         when(propertyParser.getPropertyValue(PROPERTY_FORMAT, SAFARI_BROWSER_NAME, BINARY_PATH)).thenReturn("testPath");
         DesiredCapabilities desiredCapabilities = mock();
@@ -245,7 +267,7 @@ class WebDriverFactoryTests
     {
         var webDriverType = WebDriverType.SAFARI;
         var webDriverFactory = new WebDriverFactory(false, remoteWebDriverFactory, propertyParser, new JsonUtils(),
-                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer);
+                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer, CREDENTIALS, List.of());
         webDriverFactory.setWebDriverType(webDriverType);
         when(propertyParser.getPropertyValue(PROPERTY_FORMAT, SAFARI_BROWSER_NAME, BINARY_PATH)).thenReturn(null);
         when(propertyParser.getPropertyValue(PROPERTY_FORMAT, SAFARI_BROWSER_NAME, COMMAND_LINE_ARGUMENTS)).thenReturn(
@@ -257,7 +279,7 @@ class WebDriverFactoryTests
     }
 
     @Test
-    void testGetRemoteWebDriver() throws IllegalAccessException
+    void testGetRemoteWebDriver() throws ReflectiveOperationException
     {
         mockCapabilities(remoteWebDriver);
         var desiredCapabilities = new DesiredCapabilities();
@@ -273,7 +295,7 @@ class WebDriverFactoryTests
             "SAFARI,"
     })
     void shouldSetAcceptInsecureCertsForSupportingBrowsers(String type, Boolean acceptsInsecureCerts)
-            throws IllegalAccessException
+            throws ReflectiveOperationException
     {
         mockCapabilities(remoteWebDriver);
         var desiredCapabilities = new DesiredCapabilities();
@@ -290,7 +312,7 @@ class WebDriverFactoryTests
 
     @Test
     @SuppressWarnings("unchecked")
-    void testGetRemoteWebDriverFirefoxDriver() throws IllegalAccessException
+    void testGetRemoteWebDriverFirefoxDriver() throws ReflectiveOperationException
     {
         mockCapabilities(remoteWebDriver);
         var desiredCapabilities = new DesiredCapabilities(new FirefoxOptions());
@@ -301,16 +323,23 @@ class WebDriverFactoryTests
                     caps.getBrowserName());
         }))).thenReturn(remoteWebDriver);
         assertRemoteWebDriverCreation(desiredCapabilities);
-        var sessionCaps = "{%n  \"acceptInsecureCerts\" : true,%n" + "  \"browserName\" : \"firefox\",%n"
-                + "  \"moz:debuggerAddress\" : true,%n" + "  \"moz:firefoxOptions\" : {%n" + "    \"prefs\" : {%n"
-                + "      \"startup.homepage_welcome_url.additional\" : \"about:blank\"%n" + "    }%n  }%n}";
+        var sessionCaps = "{%n"
+                + "  \"acceptInsecureCerts\" : true,%n"
+                + "  \"browserName\" : \"firefox\",%n"
+                + "  \"moz:debuggerAddress\" : true,%n"
+                + "  \"moz:firefoxOptions\" : {%n"
+                + "    \"prefs\" : {%n"
+                + "      \"remote.active-protocols\" : 3,%n"
+                + "      \"startup.homepage_welcome_url.additional\" : \"about:blank\"%n"
+                + "    }%n"
+                + "  }%n}";
         assertThat(logger.getLoggingEvents(),
                 is(List.of(info("Requested capabilities:\n{}", String.format(sessionCaps)),
                         info(SESSION_CAPABILITIES, CAPS_AS_STRING))));
     }
 
     @Test
-    void testGetRemoteWebDriverMarionetteDriver() throws IllegalAccessException
+    void testGetRemoteWebDriverMarionetteDriver() throws ReflectiveOperationException
     {
         mockCapabilities(remoteWebDriver);
         var desiredCapabilities = new DesiredCapabilities();
@@ -321,7 +350,7 @@ class WebDriverFactoryTests
     }
 
     @Test
-    void testGetRemoteWebDriverIEDriver() throws IllegalAccessException
+    void testGetRemoteWebDriverIEDriver() throws ReflectiveOperationException
     {
         mockCapabilities(remoteWebDriver);
         var desiredCapabilities = new DesiredCapabilities();
@@ -333,7 +362,7 @@ class WebDriverFactoryTests
     }
 
     @Test
-    void testGetRemoteWebDriverIsChromeWithAdditionalOptions() throws IllegalAccessException
+    void testGetRemoteWebDriverIsChromeWithAdditionalOptions() throws ReflectiveOperationException
     {
         var args = "disable-blink-features=BlockCredentialedSubresources";
         var chromeOptions = new ChromeOptions();
@@ -347,12 +376,101 @@ class WebDriverFactoryTests
     }
 
     @Test
-    void testGetRemoteWebDriverIsChromeWithoutAdditionalOptions() throws IllegalAccessException
+    void testGetRemoteWebDriverIsChromeWithoutAdditionalOptions() throws ReflectiveOperationException
     {
         testGetRemoteWebDriverIsChrome(new ChromeOptions());
     }
 
-    private void testGetRemoteWebDriverIsChrome(ChromeOptions chromeOptions) throws IllegalAccessException
+    static Stream<Arguments> chromiumBrowsers()
+    {
+        return Stream.of(
+                arguments(WebDriverType.CHROME, CHROME_BROWSER_NAME, ChromeDriver.class),
+                arguments(WebDriverType.EDGE, EDGE_BROWSER_NAME, EdgeDriver.class),
+                arguments(WebDriverType.OPERA, OPERA_BROWSER_NAME, ChromeDriver.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("chromiumBrowsers")
+    void shouldConfigureBasicAuthCredentialsForChromiumBrowsers(WebDriverType browserType, String browserName,
+            Class<RemoteWebDriver> mockDriverClass)
+    {
+        Pattern url1 = Pattern.compile(".*site1.*");
+        String user1 = "admin";
+        String pass1 = "qwerty123";
+        BasicAuthCredentials credentials1 = new BasicAuthCredentials();
+        credentials1.setUrlRegex(url1);
+        credentials1.setUsername(user1);
+        credentials1.setPassword(pass1);
+        Pattern url2 = Pattern.compile(".*site2.*");
+        String user2 = "user";
+        String pass2 = "password";
+        BasicAuthCredentials credentials2 = new BasicAuthCredentials();
+        credentials2.setUrlRegex(url2);
+        credentials2.setUsername(user2);
+        credentials2.setPassword(pass2);
+        Map<String, BasicAuthCredentials> credentials = Map.of("site1", credentials1, "site2", credentials2);
+        PropertyMappedCollection<BasicAuthCredentials> creds = new PropertyMappedCollection<>(credentials);
+
+        var webDriverFactory = new WebDriverFactory(false, remoteWebDriverFactory, propertyParser, new JsonUtils(),
+                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer, creds, List.of());
+        webDriverFactory.setWebDriverType(browserType);
+
+        try (var mockedConstruction = mockConstruction(mockDriverClass, (mock, context) ->
+        {
+            when(mock.getCapabilities()).thenReturn(new DesiredCapabilities(Map.of(BROWSER_NAME, browserName)));
+            mockTimeouts(mock);
+        }))
+        {
+            webDriverFactory.createWebDriver(new DesiredCapabilities());
+            WebDriver driver = mockedConstruction.constructed().get(0);
+            HasAuthentication hasAuthentication = (HasAuthentication) driver;
+            verify(hasAuthentication).register(argThat(p -> p.test(URI.create("https://site1.com"))), argThat(c ->
+            {
+                UsernameAndPassword usernameAndPassword = (UsernameAndPassword) c.get();
+                return usernameAndPassword.username().equals(user1) && usernameAndPassword.password().equals(pass1);
+            }));
+            verify(hasAuthentication).register(argThat(p -> p.test(URI.create("https://site2.com"))), argThat(c ->
+            {
+                UsernameAndPassword usernameAndPassword = (UsernameAndPassword) c.get();
+                return usernameAndPassword.username().equals(user2) && usernameAndPassword.password().equals(pass2);
+            }));
+        }
+    }
+
+    static Stream<Arguments> nonChromiumOrMobileBrowsers()
+    {
+        return Stream.of(
+                arguments(FIREFOX_BROWSER_NAME, FirefoxDriver.class),
+                arguments(SAFARI_BROWSER_NAME, SafariDriver.class),
+                arguments(CHROME_BROWSER_NAME, AndroidDriver.class),
+                arguments(SAFARI_BROWSER_NAME, io.appium.java_client.safari.SafariDriver.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonChromiumOrMobileBrowsers")
+    void shouldNotConfigureBasicAuthCredentialsForRemoteNonChromiumOrMobileBrowsers(String browserName,
+            Class<RemoteWebDriver> mockDriverClass)
+    {
+        var credentialsMock = mock(PropertyMappedCollection.class);
+        var webDriverFactory = new WebDriverFactory(true, remoteWebDriverFactory, propertyParser, new JsonUtils(),
+                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer, credentialsMock, List.of());
+        var remoteDriver = mock(mockDriverClass);
+        when(remoteWebDriverFactory.getRemoteWebDriver(any())).thenReturn(remoteDriver);
+        when(remoteDriver.getCapabilities()).thenReturn(new DesiredCapabilities(Map.of(BROWSER_NAME, browserName)));
+        mockTimeouts(remoteDriver);
+        webDriverFactory.createWebDriver(new DesiredCapabilities());
+        verifyNoInteractions(credentialsMock);
+    }
+
+    private void mockTimeouts(WebDriver driver)
+    {
+        Options options = mock();
+        Timeouts timeouts = mock();
+        when(driver.manage()).thenReturn(options);
+        when(options.timeouts()).thenReturn(timeouts);
+    }
+
+    private void testGetRemoteWebDriverIsChrome(ChromeOptions chromeOptions) throws ReflectiveOperationException
     {
         mockCapabilities(remoteWebDriver);
         var desiredCapabilities = new DesiredCapabilities();
@@ -363,35 +481,39 @@ class WebDriverFactoryTests
         assertLogger();
     }
 
-    private void assertRemoteWebDriverCreation(DesiredCapabilities desiredCapabilities) throws IllegalAccessException
+    private void assertRemoteWebDriverCreation(DesiredCapabilities desiredCapabilities)
+            throws ReflectiveOperationException
     {
         Options options = mock();
         when(remoteWebDriver.manage()).thenReturn(options);
         Timeouts timeouts = mock();
         when(options.timeouts()).thenReturn(timeouts);
 
-
-        var webDriverFactory = new WebDriverFactory(true, remoteWebDriverFactory, propertyParser,
-                new JsonUtils(), proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer);
-        testWebDriverCreation(desiredCapabilities, webDriverFactory, () -> remoteWebDriver);
+        WebDriverListenerFactory webDriverListenerFactory = mock();
+        var webDriverFactory = new WebDriverFactory(true, remoteWebDriverFactory, propertyParser, new JsonUtils(),
+                proxy, webDriverStartContext, Optional.empty(), timeoutConfigurer, CREDENTIALS,
+                List.of(webDriverListenerFactory));
+        testWebDriverCreation(desiredCapabilities, webDriverFactory, webDriverListenerFactory, () -> remoteWebDriver);
         verify(timeoutConfigurer).configure(timeouts);
     }
 
+    @SuppressWarnings("unchecked")
     private static void testWebDriverCreation(DesiredCapabilities desiredCapabilities,
-            WebDriverFactory webDriverFactory, Supplier<WebDriver> expectedSupplier) throws IllegalAccessException
+            WebDriverFactory webDriverFactory, WebDriverListenerFactory webDriverListenerFactory,
+            Supplier<WebDriver> expectedSupplier) throws ReflectiveOperationException
     {
-        WebDriverEventListener webDriverEventListener = mock();
-        var eventListeners = List.of(webDriverEventListener);
-        webDriverFactory.setWebDriverEventListeners(eventListeners);
+        WebDriverListener webDriverListener = mock();
+        when(webDriverListenerFactory.createListener(any(WebDriver.class))).thenReturn(webDriverListener);
 
-        var eventFiringDriver = webDriverFactory.createWebDriver(desiredCapabilities);
+        var decoratedDriver = webDriverFactory.createWebDriver(desiredCapabilities);
 
-        assertThat(eventFiringDriver, instanceOf(EventFiringWebDriver.class));
-        var textFormattingDriver = ((WrapsDriver) eventFiringDriver).getWrappedDriver();
-        assertThat(textFormattingDriver, instanceOf(TextFormattingWebDriver.class));
-        assertEquals(expectedSupplier.get(), ((WrapsDriver) textFormattingDriver).getWrappedDriver());
+        assertThat(decoratedDriver, instanceOf(Decorated.class));
+        var textFormattingDriver = ((Decorated<TextFormattingWebDriver>) decoratedDriver).getOriginal();
+        assertEquals(expectedSupplier.get(), textFormattingDriver.getWrappedDriver());
 
-        assertEquals(eventListeners, FieldUtils.readField(eventFiringDriver, "eventListeners", true));
+        decoratedDriver.getCurrentUrl();
+        verify(webDriverListener).beforeAnyWebDriverCall(textFormattingDriver,
+                WebDriver.class.getMethod("getCurrentUrl"), null);
     }
 
     private static void mockCapabilities(HasCapabilities hasCapabilities)
