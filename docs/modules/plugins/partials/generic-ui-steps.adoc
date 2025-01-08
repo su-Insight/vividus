@@ -147,27 +147,6 @@ When I wait until element located by `$locator` stops moving
 When I wait until element located by `id(submitForm)` stops moving
 ----
 
-
-=== Verify elements number
-
-Verifies if the number of elements located by locator matches the desired number.
-
-[source,gherkin]
-----
-Then number of elements found by `$locator` is $comparisonRule `$quantity`
-----
-
-* `$locator` - <<_locator>>.
-* `$comparisonRule` - xref:parameters:comparison-rule.adoc[The comparison rule].
-* `$quantity` - The expected number of the elements.
-
-.Verify the number of elements
-[source,gherkin]
-----
-Then number of elements found by `tagName(img)` is equal to `5`
-----
-
-
 === Verify elements state
 
 Verifies if the number of elements located by locator matches the number
@@ -178,7 +157,7 @@ If you describe number condition as equal to 5 in case if there are 10 elements 
 The first one about number condition violation. The second one about state check failure.
 
 [WARNING]
-In case when <<_visibility_types>> are used and checked state are equal (For an example ':i' and 'NOT_VISIBLE') exception will be thrown. In such cases please use step: <<_verify_elements_number>>.
+In case when <<_visibility_types>> are used and checked state are equal (For an example ':i' and 'NOT_VISIBLE') exception will be thrown. In such cases please use step: <<_validate_elements_number>>.
 Contradictory visibility parameters (locator - ':i' and checked state - 'VISIBLE') are also not allowed.
 
 [source,gherkin]
@@ -196,49 +175,6 @@ Then number of $state elements found by `$locator` is $comparisonRule `$quantity
 ----
 Then number of VISIBLE elements found by `tagName(img)` is = `1`
 ----
-
-=== Save text of an element
-
-Saves text of an element into a variable.
-
-[source,gherkin]
-----
-When I save text of element located by `$locator` to $scopes variable `$variableName`
-----
-
-* `$locator` - <<_locator>>.
-* `$scopes` - xref:commons:variables.adoc#_scopes[The comma-separated set of the variables scopes].
-* `$variableName` - The name of the variable to save the text.
-
-.Save the text of H1 element
-[source,gherkin]
-----
-When I save text of element located by `tagName(h1)` to scenario variable `headingText`
-----
-
-
-=== Save the text of the context
-
-Saves the text of the context element into a variable.
-
-[WARNING]
-Step will throw an error if the context element is not set.
-
-[source,gherkin]
-----
-When I save text of context element to $scopes variable `$variableName`
-----
-
-* `$scopes` - xref:commons:variables.adoc#_scopes[The comma-separated set of the variables scopes].
-* `$variableName` - The name of the variable to save the text.
-
-.Save the text of the context element
-[source,gherkin]
-----
-When I change context to element located by `id(username)`
-When I save text of context element to SCENARIO variable `username`
-----
-
 
 === Saves the attribute value of the context
 
@@ -316,6 +252,8 @@ When I save number of elements located `$locator` to $scopes variable `$variable
 When I save number of elements located by `tagName(a)` to scenario variable `numberOfLinks`
 Then `${numberOfLinks}` is equal to `1`
 ----
+
+include::plugins:partial$ui-size-and-coordinates-steps.adoc[]
 
 === Element existence during the time period
 

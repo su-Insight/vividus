@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-class LocatorTypeTests
+class HtmlLocatorTypeTests
 {
     @ParameterizedTest
+    @CsvSource({"CSS_SELECTOR, body", "XPATH, //body"})
+    void shouldFindElement(HtmlLocatorType locatorType, String locator)
+    {
+        String html = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <title>Title of the document</title>
+                </head>
+                <body />
+                </html>""";
+        assertEquals(1, locatorType.findElements(JsoupUtils.getDocument(html), locator).size());
+    }
+
+    @ParameterizedTest
     @CsvSource({"CSS_SELECTOR, CSS selector", "XPATH, XPath"})
-    void shouldProvideHumanReadableDescription(LocatorType locatorType, String expected)
+    void shouldProvideHumanReadableDescription(HtmlLocatorType locatorType, String expected)
     {
         assertEquals(expected, locatorType.getDescription());
     }

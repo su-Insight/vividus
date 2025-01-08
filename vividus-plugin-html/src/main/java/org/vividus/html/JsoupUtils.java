@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,22 @@
 
 package org.vividus.html;
 
-public enum LocatorType
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
+public final class JsoupUtils
 {
-    XPATH("XPath"), CSS_SELECTOR("CSS selector");
-
-    private final String description;
-
-    LocatorType(String description)
+    private JsoupUtils()
     {
-        this.description = description;
     }
 
-    public String getDescription()
+    public static Document getDocument(String html, String baseUri)
     {
-        return description;
+        return Jsoup.parse(html, baseUri);
+    }
+
+    public static Document getDocument(String html)
+    {
+        return getDocument(html, "");
     }
 }
