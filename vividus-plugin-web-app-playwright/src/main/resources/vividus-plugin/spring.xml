@@ -7,6 +7,10 @@
         http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd"
         default-lazy-init="true" profile="web_pw">
 
+    <bean class="org.vividus.ui.web.playwright.PlaywrightAssertionConfiguration" init-method="init" lazy-init="false">
+        <property name="assertionTimeout" value="${ui.wait.timeout}" />
+    </bean>
+
     <bean class="org.vividus.ui.web.playwright.BrowserContextProvider"
         destroy-method="destroy">
         <constructor-arg index="0" value="${internal.playwright.browser}" />
@@ -15,33 +19,73 @@
                 <property name="headless" value="${internal.browser.headless}" />
             </bean>
         </constructor-arg>
-        <constructor-arg index="2">
+    </bean>
+
+    <bean id="networkContext" class="org.vividus.ui.web.playwright.network.NetworkContext">
+        <constructor-arg index="2" value="${proxy.recording.enabled}"/>
+    </bean>
+
+    <bean class="org.vividus.ui.web.playwright.BrowserContextConfiguration">
+        <constructor-arg index="0">
             <bean class="com.microsoft.playwright.Tracing.StartOptions">
                 <property name="screenshots" value="${playwright.tracing.screenshots-enabled}" />
                 <property name="snapshots" value="${playwright.tracing.snapshots-enabled}" />
             </bean>
         </constructor-arg>
-        <constructor-arg index="3" value="${playwright.tracing.output-directory}" />
+        <constructor-arg index="1" value="${ui.wait.timeout}" />
+        <constructor-arg index="2" value="${playwright.tracing.output-directory}" />
     </bean>
 
     <bean class="org.vividus.ui.web.playwright.UiContext" />
 
+    <bean class="org.vividus.ui.web.playwright.action.PlaywrightCookieManager" />
+
+    <bean class="org.vividus.ui.web.playwright.action.PlaywrightJavascriptActions" />
+
+    <bean class="org.vividus.ui.web.playwright.action.ElementActions" />
+
+    <bean id="scrollActions" class="org.vividus.ui.web.playwright.action.ScrollActions">
+        <property name="stickyHeaderSizePercentage" value="${web-application.sticky-header-size-percentage}" />
+    </bean>
+
+    <bean class="org.vividus.ui.web.playwright.action.WaitActions" />
+
     <bean class="org.vividus.ui.web.playwright.assertions.PlaywrightSoftAssert" />
 
+    <bean id="cookieSteps" class="org.vividus.ui.web.playwright.steps.CookieSteps" />
+    <bean id="elementSteps" class="org.vividus.ui.web.playwright.steps.ElementSteps" />
     <bean id="fieldSteps" class="org.vividus.ui.web.playwright.steps.FieldSteps" />
     <bean id="mouseSteps" class="org.vividus.ui.web.playwright.steps.MouseSteps" />
     <bean id="pageSteps" class="org.vividus.ui.web.playwright.steps.PageSteps" />
     <bean id="playwrightSetupSteps" class="org.vividus.ui.web.playwright.steps.PlaywrightSetupSteps" />
     <bean id="setContextSteps" class="org.vividus.ui.web.playwright.steps.SetContextSteps" />
     <bean id="textContentSteps" class="org.vividus.ui.web.playwright.steps.TextContentSteps" />
+    <bean id="waitSteps" class="org.vividus.ui.web.playwright.steps.WaitSteps" />
+    <bean id="executeScriptSteps" class="org.vividus.ui.web.playwright.steps.ExecuteScriptSteps" />
+    <bean id="nestedSteps" class="org.vividus.ui.web.playwright.steps.NestedSteps" />
+    <bean id="dropdownSteps" class="org.vividus.ui.web.playwright.steps.DropdownSteps" />
+    <bean id="scrollSteps" class="org.vividus.ui.web.playwright.steps.ScrollSteps" />
+    <bean id="networkValidationSteps" class="org.vividus.ui.web.playwright.steps.NetworkValidationSteps" />
 
     <util:list id="stepBeanNames-WebPlaywrightUi" value-type="java.lang.String">
+        <idref bean="cookieSteps" />
+        <idref bean="elementSteps" />
         <idref bean="fieldSteps" />
         <idref bean="mouseSteps" />
         <idref bean="pageSteps" />
         <idref bean="playwrightSetupSteps" />
         <idref bean="setContextSteps" />
         <idref bean="textContentSteps" />
+        <idref bean="waitSteps" />
+        <idref bean="executeScriptSteps" />
+        <idref bean="nestedSteps" />
+        <idref bean="dropdownSteps" />
+        <idref bean="scrollSteps" />
+        <idref bean="networkValidationSteps" />
+    </util:list>
+
+    <util:list id="stepBeanNames-Playwright-Hooks">
+        <idref bean="networkContext" />
     </util:list>
 
     <util:map id="propertyEditors-WebPlaywrightUi" key-type="java.lang.Class">

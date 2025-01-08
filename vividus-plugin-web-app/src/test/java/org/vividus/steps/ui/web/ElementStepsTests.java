@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -49,6 +51,7 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.ResourceUtils;
+import org.vividus.context.VariableContext;
 import org.vividus.selenium.IWebDriverProvider;
 import org.vividus.selenium.locator.Locator;
 import org.vividus.selenium.manager.WebDriverManager;
@@ -60,11 +63,12 @@ import org.vividus.ui.action.search.SearchParameters;
 import org.vividus.ui.action.search.Visibility;
 import org.vividus.ui.context.IUiContext;
 import org.vividus.ui.util.XpathLocatorUtils;
-import org.vividus.ui.web.action.IMouseActions;
+import org.vividus.ui.web.action.ResourceFileLoader;
 import org.vividus.ui.web.action.WebElementActions;
 import org.vividus.ui.web.action.search.WebLocatorType;
+import org.vividus.variable.VariableScope;
 
-@SuppressWarnings("checkstyle:MethodCount")
+@SuppressWarnings({ "checkstyle:MethodCount", "PMD.UnnecessaryBooleanAssertion" })
 @ExtendWith(MockitoExtension.class)
 class ElementStepsTests
 {
@@ -92,9 +96,11 @@ class ElementStepsTests
     private static final String PARENT_ELEMENT_XPATH = "./..";
     private static final String JAR_ARCHIVE_FILE_TXT = "jar:file:/D:/archive.jar!/file.txt";
     private static final String FILE_INPUT_ELEMENT = "A file input element";
+    private static final String VARIABLE_NAME = "variableName";
+    private static final String ELEMENT_WITH_CSS_PROPERTY = "The element to get the CSS property value";
+    private static final Set<VariableScope> VARIABLE_SCOPE = Set.of(VariableScope.SCENARIO);
 
     @Mock private IBaseValidations baseValidations;
-    @Mock private IMouseActions mouseActions;
     @Mock private IWebDriverProvider webDriverProvider;
     @Mock private WebDriverManager webDriverManager;
     @Mock private IElementValidations elementValidations;
@@ -102,6 +108,8 @@ class ElementStepsTests
     @Mock private WebElementActions webElementActions;
     @Mock private WebElement webElement;
     @Mock private IDescriptiveSoftAssert softAssert;
+    @Mock private VariableContext variableContext;
+    @Mock private ResourceFileLoader resourceFileLoader;
     @InjectMocks private ElementSteps elementSteps;
 
     @Test
@@ -229,8 +237,9 @@ class ElementStepsTests
     @Test
     void testUploadFileNotRemote() throws IOException
     {
-        var file = mockFileForUpload();
-        mockResourceLoader(mockResource(file, true));
+        File file = mock();
+        when(resourceFileLoader.loadFile(FILE_PATH)).thenReturn(file);
+        when(file.getAbsolutePath()).thenReturn(ABSOLUTE_PATH);
         when(webDriverManager.isRemoteExecution()).thenReturn(false);
         var locator = new Locator(WebLocatorType.XPATH,
                 new SearchParameters(XPATH).setVisibility(Visibility.ALL));
@@ -248,13 +257,13 @@ class ElementStepsTests
                      assertEquals(List.of(FILE_PATH), context.arguments());
                      when(mock.exists()).thenReturn(true);
                      when(mock.getAbsolutePath()).thenReturn(ABSOLUTE_PATH);
-                 })
+                 });
+             InputStream inputStream = new ByteArrayInputStream(TEXT.getBytes(StandardCharsets.UTF_8))
         )
         {
             var resource = mock(Resource.class);
             when(resource.exists()).thenReturn(true);
             when(resource.getURL()).thenReturn(new URL(JAR_ARCHIVE_FILE_TXT));
-            InputStream inputStream = new ByteArrayInputStream(TEXT.getBytes(StandardCharsets.UTF_8));
             when(resource.getInputStream()).thenReturn(inputStream);
             mockResourceLoader(resource);
             when(softAssert.assertTrue(FILE_FILE_PATH_EXISTS, true)).thenReturn(true);
@@ -262,34 +271,6 @@ class ElementStepsTests
                     new SearchParameters(XPATH).setVisibility(Visibility.ALL));
             when(baseValidations.assertIfElementExists(AN_ELEMENT, locator)).thenReturn(webElement);
             elementSteps.uploadFileDeprecated(locator, FILE_PATH);
-            verify(webElement).sendKeys(ABSOLUTE_PATH);
-            var file = fileMock.constructed().get(0);
-            fileUtils.verify(() -> FileUtils.copyInputStreamToFile(resource.getInputStream(), file));
-        }
-    }
-
-    @Test
-    void testUploadFileFromJar() throws IOException
-    {
-        try (var fileUtils = mockStatic(FileUtils.class);
-             var fileMock = mockConstruction(File.class,
-                     (mock, context) -> {
-                         assertEquals(List.of(FILE_PATH), context.arguments());
-                         when(mock.exists()).thenReturn(true);
-                         when(mock.getAbsolutePath()).thenReturn(ABSOLUTE_PATH);
-                     })
-        )
-        {
-            var resource = mock(Resource.class);
-            when(resource.exists()).thenReturn(true);
-            when(resource.getURL()).thenReturn(new URL(JAR_ARCHIVE_FILE_TXT));
-            InputStream inputStream = new ByteArrayInputStream(TEXT.getBytes(StandardCharsets.UTF_8));
-            when(resource.getInputStream()).thenReturn(inputStream);
-            mockResourceLoader(resource);
-            var locator = new Locator(WebLocatorType.XPATH,
-                    new SearchParameters(XPATH).setVisibility(Visibility.ALL));
-            when(baseValidations.assertElementExists(FILE_INPUT_ELEMENT, locator)).thenReturn(Optional.of(webElement));
-            elementSteps.uploadFile(locator, FILE_PATH);
             verify(webElement).sendKeys(ABSOLUTE_PATH);
             var file = fileMock.constructed().get(0);
             fileUtils.verify(() -> FileUtils.copyInputStreamToFile(resource.getInputStream(), file));
@@ -314,8 +295,9 @@ class ElementStepsTests
     @Test
     void testUploadFileRemote() throws IOException
     {
-        var file = mockFileForUpload();
-        mockResourceLoader(mockResource(file, true));
+        File file = mock();
+        when(resourceFileLoader.loadFile(FILE_PATH)).thenReturn(file);
+        when(file.getAbsolutePath()).thenReturn(ABSOLUTE_PATH);
         mockRemoteWebDriver();
         when(webDriverManager.isRemoteExecution()).thenReturn(true);
         var locator = new Locator(WebLocatorType.XPATH,
@@ -342,21 +324,6 @@ class ElementStepsTests
     }
 
     @Test
-    void testUploadFileFromFilesystem() throws IOException
-    {
-        var resource = mockResource(mockFileForUpload(), false);
-        var resourceLoader = mockResourceLoader(resource);
-        when(resourceLoader.getResource(ResourceUtils.FILE_URL_PREFIX + FILE_PATH)).thenReturn(resource);
-        mockRemoteWebDriver();
-        when(webDriverManager.isRemoteExecution()).thenReturn(true);
-        var locator = new Locator(WebLocatorType.XPATH,
-                new SearchParameters(XPATH).setVisibility(Visibility.ALL));
-        when(baseValidations.assertElementExists(FILE_INPUT_ELEMENT, locator)).thenReturn(Optional.of(webElement));
-        elementSteps.uploadFile(locator, FILE_PATH);
-        verify(webElement).sendKeys(ABSOLUTE_PATH);
-    }
-
-    @Test
     void testLoadFileRemoteSimpleDriver() throws IOException
     {
         var file = mockFileForUpload();
@@ -368,20 +335,6 @@ class ElementStepsTests
                 new SearchParameters(XPATH).setVisibility(Visibility.ALL));
         when(baseValidations.assertIfElementExists(AN_ELEMENT, locator)).thenReturn(webElement);
         elementSteps.uploadFileDeprecated(locator, FILE_PATH);
-        verify(webElement).sendKeys(ABSOLUTE_PATH);
-    }
-
-    @Test
-    void testUploadFileRemoteSimpleDriver() throws IOException
-    {
-        var file = mockFileForUpload();
-        mockResourceLoader(mockResource(file, true));
-        mockRemoteWebDriver();
-        when(webDriverManager.isRemoteExecution()).thenReturn(true);
-        var locator = new Locator(WebLocatorType.XPATH,
-                new SearchParameters(XPATH).setVisibility(Visibility.ALL));
-        when(baseValidations.assertElementExists(FILE_INPUT_ELEMENT, locator)).thenReturn(Optional.of(webElement));
-        elementSteps.uploadFile(locator, FILE_PATH);
         verify(webElement).sendKeys(ABSOLUTE_PATH);
     }
 
@@ -400,9 +353,8 @@ class ElementStepsTests
     @Test
     void testUploadFileNoFile() throws IOException
     {
-        var file = mock(File.class);
-        when(file.exists()).thenReturn(true);
-        mockResourceLoader(mockResource(file, true));
+        File file = mock();
+        when(resourceFileLoader.loadFile(FILE_PATH)).thenReturn(file);
         var locator = new Locator(WebLocatorType.XPATH,
                 new SearchParameters(XPATH).setVisibility(Visibility.ALL));
         elementSteps.uploadFile(locator, FILE_PATH);
@@ -424,11 +376,48 @@ class ElementStepsTests
     }
 
     @Test
+    void shouldSaveCssPropertyValue()
+    {
+        var locator = mock(Locator.class);
+        var webElement = mock(WebElement.class);
+        when(baseValidations.assertElementExists(ELEMENT_WITH_CSS_PROPERTY, locator))
+                .thenReturn(Optional.of(webElement));
+        when(webElementActions.getCssValue(webElement, CSS_NAME)).thenReturn(CSS_VALUE);
+
+        elementSteps.saveCssPropertyValue(CSS_NAME, locator, VARIABLE_SCOPE, VARIABLE_NAME);
+        verify(variableContext).putVariable(VARIABLE_SCOPE, VARIABLE_NAME, CSS_VALUE);
+        verifyNoInteractions(softAssert);
+    }
+
+    @Test
+    void shouldNotSaveCssPropertyValueIfTheValueIsNotFound()
+    {
+        var locator = mock(Locator.class);
+        var webElement = mock(WebElement.class);
+        when(baseValidations.assertElementExists(ELEMENT_WITH_CSS_PROPERTY, locator))
+                .thenReturn(Optional.of(webElement));
+        when(webElementActions.getCssValue(webElement, CSS_NAME)).thenReturn(StringUtils.EMPTY);
+
+        elementSteps.saveCssPropertyValue(CSS_NAME, locator, VARIABLE_SCOPE, VARIABLE_NAME);
+        verify(softAssert).recordFailedAssertion(String.format("The '%s' CSS property does not exist", CSS_NAME));
+        verifyNoInteractions(variableContext);
+    }
+
+    @Test
+    void shouldNotSaveCssPropertyValueIfTheElementIsNotFound()
+    {
+        var locator = mock(Locator.class);
+        when(baseValidations.assertElementExists(ELEMENT_WITH_CSS_PROPERTY, locator)).thenReturn(Optional.empty());
+
+        elementSteps.saveCssPropertyValue(CSS_NAME, locator, VARIABLE_SCOPE, VARIABLE_NAME);
+        verifyNoInteractions(softAssert, variableContext);
+    }
+
+    @Test
     void testUploadFileNoElement() throws IOException
     {
-        var file = mock(File.class);
-        when(file.exists()).thenReturn(true);
-        mockResourceLoader(mockResource(file, true));
+        File file = mock();
+        when(resourceFileLoader.loadFile(FILE_PATH)).thenReturn(file);
         when(webDriverManager.isRemoteExecution()).thenReturn(false);
         var locator = new Locator(WebLocatorType.XPATH,
                 new SearchParameters(LOCATOR_BY_ATTRIBUTE).setVisibility(Visibility.ALL));

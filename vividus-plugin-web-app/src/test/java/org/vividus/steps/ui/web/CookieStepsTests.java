@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.jbehave.core.model.ExamplesTable;
 import org.junit.jupiter.api.Test;
@@ -41,19 +42,22 @@ import org.openqa.selenium.WebDriver;
 import org.vividus.context.VariableContext;
 import org.vividus.selenium.IWebDriverProvider;
 import org.vividus.softassert.ISoftAssert;
-import org.vividus.ui.web.action.CookieManager;
+import org.vividus.steps.StringComparisonRule;
 import org.vividus.ui.web.action.INavigateActions;
+import org.vividus.ui.web.action.WebDriverCookieManager;
 import org.vividus.util.json.JsonUtils;
 import org.vividus.variable.VariableScope;
 
+@SuppressWarnings("PMD.UnnecessaryBooleanAssertion")
 @ExtendWith(MockitoExtension.class)
 class CookieStepsTests
 {
     private static final String NAME = "name";
+    private static final String DYNAMIC_COOKIE_NAME = "SSESSf4342sds23e3t5fs";
 
     @Mock private INavigateActions navigateActions;
     @Mock private ISoftAssert softAssert;
-    @Mock private CookieManager cookieManager;
+    @Mock private WebDriverCookieManager cookieManager;
     @Mock private Cookie cookie;
     @Mock private IWebDriverProvider webDriverProvider;
     @Mock private VariableContext variableContext;
@@ -127,6 +131,15 @@ class CookieStepsTests
     }
 
     @Test
+    void shouldValidateThatCookieWithNameMatchingComparisonRuleIsSet()
+    {
+        when(cookie.getName()).thenReturn(DYNAMIC_COOKIE_NAME);
+        when(cookieManager.getCookies()).thenReturn(Set.of(cookie));
+        cookieSteps.thenCookieWithMatchingNameIsSet(StringComparisonRule.MATCHES, "SSESS.*");
+        verify(softAssert).assertTrue("Cookie with the name that matches 'SSESS.*' is set", true);
+    }
+
+    @Test
     void testThenCookieWithNameIsNotSet()
     {
         when(cookieManager.getCookie(NAME)).thenReturn(cookie);
@@ -136,15 +149,40 @@ class CookieStepsTests
     }
 
     @Test
-    void testSetAllCookies()
+    void shouldValidateThatCookieWithNameMatchingComparisonRuleIsNotSet()
     {
-        String testUrl = "https://www.vividus.org";
-        mockGetCurrentPageUrl(testUrl);
-        String tableAsString = "|cookieName|cookieValue|path|\n|hcpsid|1|/|\n|hcpsid|1|/|";
-        ExamplesTable table = new ExamplesTable(tableAsString);
-        cookieSteps.setAllCookies(table);
-        verify(cookieManager, times(2)).addCookie("hcpsid", "1", "/", testUrl);
+        when(cookie.getName()).thenReturn(DYNAMIC_COOKIE_NAME);
+        when(cookieManager.getCookies()).thenReturn(Set.of(cookie));
+        cookieSteps.thenCookieWithMatchingNameIsNotSet(StringComparisonRule.CONTAINS, "_ga");
+        verify(softAssert).assertTrue("Cookie with the name that contains '_ga' is not set", true);
+    }
+
+    @Test
+    void shouldSetAllCookies()
+    {
+        testSetAllCookies(cookieSteps::setAllCookies);
         verify(navigateActions).refresh();
+    }
+
+    @Test
+    void shoutSetAllCookiesWithoutApplyingChanges()
+    {
+        testSetAllCookies(cookieSteps::setAllCookiesWithoutApply);
+        verifyNoInteractions(navigateActions);
+    }
+
+    private void testSetAllCookies(Consumer<ExamplesTable> test)
+    {
+        var testUrl = "https://www.vividus.org";
+        mockGetCurrentPageUrl(testUrl);
+        var tableAsString = """
+                |cookieName|cookieValue|path|
+                |hcpsid    |1          |/   |
+                |hcpsid    |1          |/   |
+                """;
+        var table = new ExamplesTable(tableAsString);
+        test.accept(table);
+        verify(cookieManager, times(2)).addCookie("hcpsid", "1", "/", testUrl);
     }
 
     @Test

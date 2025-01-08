@@ -27,8 +27,9 @@ When I reinstall mobile application with bundle identifier `${main-app}`
 When I wait until element located by `xpath(<textElementXpath>)->filter.text(Home)` appears
 
 
-Scenario: Validate coordinate/size dynamic variables, page source dynamic variable
+Scenario: Validate coordinate/size dynamic variables, page source dynamic variables
 Then `${source-code}` matches `.+Home.+`
+Then `${context-source-code}` matches `.+Home.+`
 When I change context to element located by `xpath(<textElementXpath>)->filter.text(Home)`
 Then `${context-height}`            is > `0`
 Then `${context-width}`             is > `0`
@@ -229,7 +230,7 @@ When I upload file `/data/mobile-upload-image.png` to device
 When I tap on element located by `iosNsPredicate(name == 'selectImage')`
 When I wait until element located by `accessibilityId(Photos)` appears
 When I tap on element located by `xpath((//XCUIElementTypeImage[contains(@name, "Photo")])[1])`
-Then number of elements found by `xpath(//XCUIElementTypeStaticText[@value='228x228'])` is equal to `1`
+When I wait until element located by `xpath(//XCUIElementTypeStaticText[@value='228x228'])` appears
 
 
 Scenario: [Android] Verify step: 'I upload file with name `$fileName` and data `$data` to device'
