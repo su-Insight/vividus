@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,6 @@ package org.vividus.crawler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,7 +30,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.client5.http.protocol.RedirectLocations;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -98,20 +94,20 @@ class SiteMapParserTests
     @Test
     void testParseSiteMapWithUserInfoInUrl() throws IOException, SiteMapParseException
     {
-        URI siteMapUrl = UriUtils.addUserInfo(SITE_MAP_URL, "user:pass");
+        URI siteMapUrl = UriUtils.addUserInfo(SITE_MAP_URL, "user:p%40ss");
         mockSiteMapParsing(SITEMAP_XML, siteMapUrl);
-        siteMapParser.setFollowRedirects(false);
+
         Collection<SiteMapURL> siteMapUrls = siteMapParser.parse(true, siteMapUrl);
+
         assertSiteMapUrls(SITEMAP_URL_NUMBER, SITEMAP_ENTRY_URL, siteMapUrls);
     }
 
     @Test
     void testIOExceptionThrown() throws IOException
     {
-        IOException ioException = new IOException();
-        when(mockedHttpClient.doHttpGet(eq(SITE_MAP_URL), any())).thenThrow(ioException);
-        SiteMapParseException exception = assertThrows(SiteMapParseException.class,
-            () -> siteMapParser.parse(false, SITE_MAP_URL));
+        var ioException = new IOException();
+        when(mockedHttpClient.doHttpGet(SITE_MAP_URL)).thenThrow(ioException);
+        var exception = assertThrows(SiteMapParseException.class, () -> siteMapParser.parse(false, SITE_MAP_URL));
         assertEquals(ioException, exception.getCause());
     }
 
@@ -171,14 +167,11 @@ class SiteMapParserTests
 
     private RedirectLocations mockHttpGet(String resourceName, URI siteMapUrl) throws IOException
     {
-        HttpResponse httpResponse = new HttpResponse();
+        var httpResponse = new HttpResponse();
         httpResponse.setResponseBody(ResourceUtils.loadResourceAsByteArray(getClass(), resourceName));
         RedirectLocations locations = mock();
-        when(mockedHttpClient.doHttpGet(eq(siteMapUrl), argThat(context ->
-        {
-            context.setAttribute(HttpClientContext.REDIRECT_LOCATIONS, locations);
-            return true;
-        }))).thenReturn(httpResponse);
+        httpResponse.setRedirectLocations(locations);
+        when(mockedHttpClient.doHttpGet(siteMapUrl)).thenReturn(httpResponse);
         return locations;
     }
 

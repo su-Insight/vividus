@@ -201,13 +201,32 @@ Examples:
 }
 {transformer=FILTERING, column.col1=.+}
 
-Scenario: Verify DISTINCTING transformer
+Scenario: Validate DISTINCTING transformer
 Meta:
     @requirementId 992
 Then `<column1>` is equal to `a a b b`
 Then `<column3>` is equal to `a b a b`
 Examples:
 {transformer=DISTINCTING, byColumnNames=column1;column3}
+{transformer=JOINING, joinMode=rows}
+|column1|column2|column3|
+|a      |x      |a      |
+|a      |y      |a      |
+|a      |x      |b      |
+|a      |y      |b      |
+|b      |x      |a      |
+|b      |y      |a      |
+|b      |x      |b      |
+|b      |y      |b      |
+
+Scenario: Validate DISTINCTING transformer keeping all columns
+Meta:
+    @requirementId 992
+Then `<column1>` is equal to `a a b b`
+Then `<column2>` is equal to `x x x x`
+Then `<column3>` is equal to `a b a b`
+Examples:
+{transformer=DISTINCTING, byColumnNames=column1;column3, keepAllColumns=true}
 {transformer=JOINING, joinMode=rows}
 |column1|column2|column3|
 |a      |x      |a      |
@@ -275,6 +294,13 @@ Meta:
 Then `<relativeUrl>` matches `.*links.*`
 Examples:
 {transformer=FROM_HEADLESS_CRAWLING, column=relativeUrl}
+
+
+Scenario: Verify FROM_HEADLESS_CRAWLING transformer passing URL through transformer parameter
+Then `<relativeUrl>` matches `.*links.*`
+Examples:
+{transformer=FROM_HEADLESS_CRAWLING, column=relativeUrl, mainPageUrl=$\{vividus-test-site-url\}}
+
 
 Scenario: Verify FROM_SITEMAP transformer
 When I initialize scenario variable `sitemapTransformerTable` with values:
@@ -435,25 +461,44 @@ Scenario: Verify FROM_HTML transformer with attribute
 When I initialize scenario variable `documentTable` with values:
 {transformer=FROM_HTML, column=col, pageUrl=$\{vividus-test-site-url\}/links.html, xpathSelector=//a/@href}
 Then `${documentTable}` is equal to table:
-|col       |
-|#ElementId|
-|#notFound |
-|#         |
+|col         |
+|#ElementId  |
+|#ElementName|
+|            |
+|#notFound   |
+|#           |
 
 Scenario: Verify FROM_HTML transformer with text
 When I initialize scenario variable `documentTable` with values:
 {transformer=FROM_HTML, column=col, pageUrl=$\{vividus-test-site-url\}/links.html, xpathSelector=//a/text()}
 Then `${documentTable}` is equal to table:
-|col                       |
-|Link to an element        |
-|Link to unexistent element|
-|Link with tooltip         |
+|col                                        |
+|Link to an element                         |
+|Link to the anchor with name "ElementName" |
+|Named anchor.                              |
+|Link to unexistent element                 |
+|Link with tooltip                          |
 
-Scenario: Verify FROM_HTML transformer with HTML
+Scenario: [Deprecated] Verify FROM_HTML transformer with page HTML
 When I initialize scenario variable `documentTable` with values:
 {transformer=FROM_HTML, column=col, pageUrl=$\{vividus-test-site-url\}/links.html, xpathSelector=//a}
 Then `${documentTable}` is equal to table:
 |col                                                                              |
 |<a href="#ElementId">Link to an element</a>                                      |
+|<a href="#ElementName">Link to the anchor with name "ElementName"</a>            |
+|<a name="ElementName">Named anchor.</a>                                          |
+|<a href="#notFound">Link to unexistent element</a>                               |
+|<a href="#" title="Link title" onclick="onLinkClick(event)">Link with tooltip</a>|
+
+Scenario: Verify FROM_HTML transformer with variable HTML
+When I execute HTTP GET request for resource with URL `${vividus-test-site-url}/links.html`
+Given I initialize story variable `pageSource` with value `${response}`
+When I initialize scenario variable `documentTable` with values:
+{transformer=FROM_HTML, column=col, variableName=pageSource, xpathSelector=//a}
+Then `${documentTable}` is equal to table:
+|col                                                                              |
+|<a href="#ElementId">Link to an element</a>                                      |
+|<a href="#ElementName">Link to the anchor with name "ElementName"</a>            |
+|<a name="ElementName">Named anchor.</a>                                          |
 |<a href="#notFound">Link to unexistent element</a>                               |
 |<a href="#" title="Link title" onclick="onLinkClick(event)">Link with tooltip</a>|
