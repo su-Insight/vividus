@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,31 @@ package org.vividus.crawler.transformer;
 
 import java.net.URI;
 import java.util.Set;
-import java.util.function.Supplier;
 
-import com.google.common.base.Suppliers;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jbehave.core.model.ExamplesTable.TableProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vividus.crawler.ICrawlControllerFactory;
 import org.vividus.crawler.LinkCrawlerData;
 import org.vividus.crawler.LinkCrawlerFactory;
 import org.vividus.util.UriUtils;
 
 import edu.uci.ics.crawler4j.crawler.CrawlController;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
 public class HeadlessCrawlerTableTransformer extends AbstractFetchingUrlsTableTransformer
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HeadlessCrawlerTableTransformer.class);
+
+    private static final String DEPRECATION_MESSAGE =
+           "Property `transformer.from-headless-crawling.exclude-extensions-regex` is deprecated and will be removed in"
+                    + " VIVIDUS 0.7.0. Please use `transformer.from-headless-crawling.exclude-urls-regex` instead.";
     private static final String FORWARD_SLASH = "/";
     private static final int NUMBER_OF_CRAWLERS = 50;
 
@@ -40,20 +50,25 @@ public class HeadlessCrawlerTableTransformer extends AbstractFetchingUrlsTableTr
 
     private Set<String> seedRelativeUrls;
 
+    private String excludeUrlsRegex;
     private String excludeExtensionsRegex;
 
-    private final Supplier<Set<String>> urlsProvider = Suppliers.memoize(() ->
-    {
-        URI mainApplicationPage = getMainApplicationPageUri();
-        CrawlController controller = crawlControllerFactory.createCrawlController(mainApplicationPage);
+    private final LoadingCache<URI, Set<String>> crawledUrlsCache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<>()
+            {
+                @Override
+                public Set<String> load(URI mainApplicationPage)
+                {
+                    CrawlController controller = crawlControllerFactory.createCrawlController(mainApplicationPage);
 
-        addSeeds(mainApplicationPage, controller);
+                    addSeeds(mainApplicationPage, controller);
 
-        LinkCrawlerData linkCrawlerData = new LinkCrawlerData();
-        controller.start(new LinkCrawlerFactory(linkCrawlerData, excludeExtensionsRegex), NUMBER_OF_CRAWLERS);
-        Set<String> absoluteUrls = linkCrawlerData.getAbsoluteUrls();
-        return filterResults(absoluteUrls.stream());
-    });
+                    LinkCrawlerData linkCrawlerData = new LinkCrawlerData();
+                    controller.start(new LinkCrawlerFactory(linkCrawlerData, excludeUrlsRegex), NUMBER_OF_CRAWLERS);
+                    Set<String> absoluteUrls = linkCrawlerData.getAbsoluteUrls();
+                    return filterResults(absoluteUrls.stream());
+                }
+            });
 
     private void addSeeds(URI mainApplicationPage, CrawlController controller)
     {
@@ -87,7 +102,13 @@ public class HeadlessCrawlerTableTransformer extends AbstractFetchingUrlsTableTr
     @Override
     protected Set<String> fetchUrls(TableProperties properties)
     {
-        return urlsProvider.get();
+        if (!StringUtils.isEmpty(excludeExtensionsRegex))
+        {
+            LOGGER.warn(DEPRECATION_MESSAGE);
+        }
+
+        URI mainApplicationPage = getMainApplicationPageUri(properties);
+        return crawledUrlsCache.getUnchecked(mainApplicationPage);
     }
 
     public void setCrawlControllerFactory(ICrawlControllerFactory crawlControllerFactory)
@@ -98,6 +119,11 @@ public class HeadlessCrawlerTableTransformer extends AbstractFetchingUrlsTableTr
     public void setSeedRelativeUrls(Set<String> seedRelativeUrls)
     {
         this.seedRelativeUrls = seedRelativeUrls;
+    }
+
+    public void setExcludeUrlsRegex(String excludeUrlsRegex)
+    {
+        this.excludeUrlsRegex = excludeUrlsRegex;
     }
 
     public void setExcludeExtensionsRegex(String excludeExtensionsRegex)
