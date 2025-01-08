@@ -78,14 +78,14 @@ dependencies {
 
     implementation project(':vividus-agent-reportportal')
 
-    implementation(group: 'com.mysql', name: 'mysql-connector-j', version: '8.2.0')
-    implementation(group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '12.5.0.jre11-preview')
-    implementation(group: 'org.postgresql', name: 'postgresql', version: '42.7.0')
-    implementation(group: 'com.oracle.database.jdbc', name: 'ojdbc10', version: '19.21.0.0')
+    implementation(group: 'com.mysql', name: 'mysql-connector-j', version: '8.3.0')
+    implementation(group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '12.6.1.jre11')
+    implementation(group: 'org.postgresql', name: 'postgresql', version: '42.7.2')
+    implementation(group: 'com.oracle.database.jdbc', name: 'ojdbc10', version: '19.22.0.0')
     implementation(group: 'com.ibm.db2.jcc', name: 'db2jcc', version: 'db2jcc4')
-    implementation(group: 'net.sourceforge.csvjdbc', name: 'csvjdbc', version: '1.0.41')
+    implementation(group: 'net.sourceforge.csvjdbc', name: 'csvjdbc', version: '1.0.42')
     implementation(group: 'com.h2database', name: 'h2', version: '2.2.224')
-    implementation(group: 'net.snowflake', name: 'snowflake-jdbc', version: '3.14.3')
+    implementation(group: 'net.snowflake', name: 'snowflake-jdbc', version: '3.15.0')
 }
 
 tasks.register('copyRuntimeLibs', Copy) {

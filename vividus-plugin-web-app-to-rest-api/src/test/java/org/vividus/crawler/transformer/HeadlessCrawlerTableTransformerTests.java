@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.vividus.crawler.transformer;
 
+import static com.github.valfirst.slf4jtest.LoggingEvent.info;
 import static com.github.valfirst.slf4jtest.LoggingEvent.warn;
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import com.github.valfirst.slf4jtest.LoggingEvent;
 import com.github.valfirst.slf4jtest.TestLogger;
 import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import com.github.valfirst.slf4jtest.TestLoggerFactoryExtension;
@@ -75,6 +77,8 @@ import edu.uci.ics.crawler4j.url.WebURLImpl;
 @ExtendWith({MockitoExtension.class, TestLoggerFactoryExtension.class})
 class HeadlessCrawlerTableTransformerTests
 {
+    private static final String MAIN_APP_PROP = "transformer.from-headless-crawling.main-page-url";
+
     private static final String SLASH_PATH3 = "/path3";
     private static final String PATH3 = "path3";
     private static final String ROOT = "/";
@@ -89,6 +93,9 @@ class HeadlessCrawlerTableTransformerTests
     private static final String OUTGOING_ABSOLUT_URL = "http://some.url/path";
 
     private static final String EXCLUDE_EXTENSIONS_REGEX = "js|css";
+    private static final String EXCLUDE_URLS_REGEX = ".*broken-link*";
+
+    private static final String REDIRECT_FILTER_LOG = "Filtered redirects chains:{}{}";
 
     private final TestLogger logger = TestLoggerFactory.getTestLogger(HeadlessCrawlerTableTransformer.class);
 
@@ -119,10 +126,25 @@ class HeadlessCrawlerTableTransformerTests
                                   List<String> expectedSeedRelativeUrls) throws IOException, InterruptedException
     {
         transformer.setSeedRelativeUrls(seedRelativeUrlsProperty);
-        transformer.setExcludeExtensionsRegex(EXCLUDE_EXTENSIONS_REGEX);
+        transformer.setExcludeUrlsRegex(EXCLUDE_URLS_REGEX);
+        transformer.setMainPageUrlProperty(MAIN_APP_PROP);
         Set<String> urls = testFetchUrls(mainAppPageRelativeUrl, expectedSeedRelativeUrls);
         assertThat(urls, equalTo(Set.of(OUTGOING_ABSOLUT_URL)));
         verifyNoInteractions(redirectsProvider);
+        assertThat(logger.getLoggingEvents(), is(List.of(getMainAppPageWarn())));
+    }
+
+    @Test
+    void testFetchUrlsWithDeprecatedExcludeExtensionsRegexProperty() throws IOException, InterruptedException
+    {
+        transformer.setExcludeExtensionsRegex(EXCLUDE_EXTENSIONS_REGEX);
+        transformer.setMainPageUrlProperty(MAIN_APP_PROP);
+        testFetchUrls(MAIN_APP_PAGE, List.of());
+        assertThat(logger.getLoggingEvents(), is(List.of(warn(
+                "Property `transformer.from-headless-crawling.exclude-extensions-regex` is deprecated and will "
+                        + "be removed in VIVIDUS 0.7.0. "
+                        + "Please use `transformer.from-headless-crawling.exclude-urls-regex` instead."),
+                getMainAppPageWarn())));
     }
 
     @Test
@@ -130,10 +152,13 @@ class HeadlessCrawlerTableTransformerTests
     {
         transformer.setFilterRedirects(true);
         transformer.setSeedRelativeUrls(toSet(PATH2, PATH3));
+        transformer.setMainPageUrlProperty(MAIN_APP_PROP);
         URI outgoingURI = URI.create(OUTGOING_ABSOLUT_URL);
         when(redirectsProvider.getRedirects(outgoingURI)).thenReturn(List.of(outgoingURI));
         Set<String> urls = testFetchUrls(ROOT, asList(PATH2, SLASH_PATH3));
         assertThat(urls, equalTo(Set.of()));
+        assertThat(logger.getLoggingEvents(), is(List.of(getMainAppPageWarn(),
+                info(REDIRECT_FILTER_LOG, System.lineSeparator(), "http://some.url/path -> http://some.url/path"))));
     }
 
     @Test
@@ -141,12 +166,13 @@ class HeadlessCrawlerTableTransformerTests
     {
         transformer.setFilterRedirects(true);
         transformer.setSeedRelativeUrls(toSet(PATH2, PATH3));
+        transformer.setMainPageUrlProperty(MAIN_APP_PROP);
         URI outgoingURI = URI.create(OUTGOING_ABSOLUT_URL);
         var httpResponseException = new HttpResponseException(HttpStatus.SC_NOT_FOUND, "");
         when(redirectsProvider.getRedirects(outgoingURI)).thenThrow(httpResponseException);
         Set<String> urls = testFetchUrls(ROOT, List.of(PATH2, SLASH_PATH3));
         assertThat(urls, equalTo(Set.of(OUTGOING_ABSOLUT_URL)));
-        assertThat(logger.getLoggingEvents(), is(List.of(warn(httpResponseException,
+        assertThat(logger.getLoggingEvents(), is(List.of(getMainAppPageWarn(), warn(httpResponseException,
                 "Exception during redirects receiving"))));
     }
 
@@ -155,10 +181,13 @@ class HeadlessCrawlerTableTransformerTests
     {
         transformer.setFilterRedirects(true);
         transformer.setSeedRelativeUrls(toSet(PATH2, PATH3));
+        transformer.setMainPageUrlProperty(MAIN_APP_PROP);
         URI outgoingURI = URI.create(OUTGOING_ABSOLUT_URL);
         when(redirectsProvider.getRedirects(outgoingURI)).thenReturn(List.of(URI.create("http://some.url/other")));
         Set<String> urls = testFetchUrls(ROOT, asList(PATH2, SLASH_PATH3));
         assertThat(urls, equalTo(Set.of(OUTGOING_ABSOLUT_URL)));
+        assertThat(logger.getLoggingEvents(), is(List.of(getMainAppPageWarn(),
+                info(REDIRECT_FILTER_LOG, System.lineSeparator(), "http://some.url/path -> http://some.url/other"))));
     }
 
     @Test
@@ -273,6 +302,14 @@ class HeadlessCrawlerTableTransformerTests
         when(crawlControllerFactory.createCrawlController(mainPageURI))
                 .thenReturn(crawlController);
         return crawlController;
+    }
+
+    private LoggingEvent getMainAppPageWarn()
+    {
+        return warn("The use of {} property for setting of main page for crawling is deprecated and will "
+                + "be removed in VIVIDUS 0.7.0, pelase see use either {} transformer parameter or "
+                + "{} property.",
+                "web-application.main-page-url", "mainPageUrl", MAIN_APP_PROP);
     }
 
     private TableProperties buildTableProperties()
