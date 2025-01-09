@@ -111,14 +111,14 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ !github.event.pull_request.head.repo.fork || github.ref == 'refs/heads/master'}}
-      uses: codecov/codecov-action@v4.4.1
+      uses: codecov/codecov-action@v4.5.0
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to Codecov
       if: ${{ github.event.pull_request.head.repo.fork }}
-      uses: codecov/codecov-action@v4.4.1
+      uses: codecov/codecov-action@v4.5.0
 
     - name: VIVIDUS tasks validation
       run: |
@@ -197,8 +197,7 @@ jobs:
             ./gradlew :vividus-tests:debugStories -Pvividus.configuration-set.active=system \
                                                   -Pvividus.selenium.grid.username=${BROWSERSTACK_USER} \
                                                   -Pvividus.selenium.grid.password=${BROWSERSTACK_KEY} \
-                                                  -Pvividus.selenium.grid.platform-name=Windows \
-                                                  -Pvividus.selenium.grid.platform-version=10 \
+                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="VIVIDUS System Tests" \
                                                   -Pvividus.allure.history-directory=output/history/system-tests \
                                                   -Pvividus.allure.executor.name="Github Actions (Vividus)" \
                                                   -Pvividus.allure.executor.type=github \
@@ -553,8 +552,7 @@ jobs:
                                                   -Pvividus.configuration.profiles=browserstack/web,web/desktop/${profile} \
                                                   -Pvividus.selenium.grid.username=${BROWSERSTACK_USER} \
                                                   -Pvividus.selenium.grid.password=${BROWSERSTACK_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.projectName=Vividus \
-                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="Vividus BrowserStack Integration Tests"
+                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="VIVIDUS BrowserStack Integration Tests"
           done
         else
             echo No BROWSERSTACK_USER and/or BROWSERSTACK_KEY, Browserstack integration tests will be skipped

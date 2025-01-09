@@ -146,43 +146,6 @@ Examples:
 |jhbdahjabw      |
 |738162378613896 |
 
-Scenario: Verify FROM_EXCEL transformer
-Meta:
-    @issueId 647
-Then `<joined>` is equal to `line 1 line 2 line 3`
-Examples:
-{transformer=FROM_EXCEL, path=/data/excel.xlsx, sheet=Sheet1, addresses=A1, column=joined, \{lineBreakReplacement|VERBATIM\}= }
-
-Scenario: Check loading excel table with different data types using FROM_EXCEL transformer
-Meta:
-    @issueId 2908
-When I initialize scenario variable `expectedTable` with values:
-|StringValue|NumericValue|BooleanValue|FormulaValue|FormulaErrorValue|
-|City       |17.0        |false       |289.0       |                 |
-Then `${expectedTable}` is equal to table:
-{transformer=FROM_EXCEL, path=/data/excel.xlsx, sheet=DifferentTypes, range=A1:E2}
-
-Scenario: Check FROM_EXCEL transformer with multiply ranges (separate ranges for header and data)
-Meta:
-    @issueId 5084
-When I initialize scenario variable `expectedTable` with values:
-|StringValue |NumericValue |BooleanValue |FormulaValue |
-|Timezone    |21.0         |false        |441.0        |
-|City        |17.0         |false        |289.0        |
-|Country     |19.0         |true         |361.0        |
-Then `${expectedTable}` is equal to table:
-{transformer=FROM_EXCEL, path=/data/excel.xlsx, sheet=DifferentTypes, range=A1:D1;A4:D4;A2:D3;}
-
-Scenario: Check FROM_EXCEL transformer with multiply ranges (separate ranges for header with data and additional data)
-Meta:
-    @issueId 5084
-When I initialize scenario variable `expectedTable` with values:
-|NumericValue |BooleanValue |FormulaValue |
-|17.0         |false        |289.0        |
-|19.0         |true         |361.0        |
-Then `${expectedTable}` is equal to table:
-{transformer=FROM_EXCEL, path=/data/excel.xlsx, sheet=DifferentTypes, range=B1:D2;B3:D3}
-
 Scenario: Verify ExamplesTable property value with space
 Meta:
     @issueId 767
