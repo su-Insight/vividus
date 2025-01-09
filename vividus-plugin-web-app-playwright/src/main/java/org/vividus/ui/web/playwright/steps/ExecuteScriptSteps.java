@@ -14,28 +14,30 @@
  * limitations under the License.
  */
 
-package org.vividus.steps.ui;
+package org.vividus.ui.web.playwright.steps;
 
-import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.jbehave.core.annotations.When;
 import org.vividus.context.VariableContext;
 import org.vividus.softassert.ISoftAssert;
-import org.vividus.steps.ui.web.model.JsArgument;
-import org.vividus.steps.ui.web.model.JsArgumentType;
-import org.vividus.ui.action.JavascriptActions;
+import org.vividus.softassert.SoftAssert;
+import org.vividus.ui.web.playwright.action.PlaywrightJavascriptActions;
 import org.vividus.variable.VariableScope;
 
-public class ExecuteScriptSteps extends AbstractExecuteScriptSteps
+public class ExecuteScriptSteps
 {
-    private final JavascriptActions javascriptActions;
+    private final PlaywrightJavascriptActions playwrightJavascriptActions;
+    private final ISoftAssert softAssert;
+    private final VariableContext variableContext;
 
-    public ExecuteScriptSteps(JavascriptActions javascriptActions, VariableContext variableContext,
-            ISoftAssert softAssert)
+    public ExecuteScriptSteps(PlaywrightJavascriptActions playwrightJavascriptActions, SoftAssert softAssert,
+            VariableContext variableContext)
     {
-        super(softAssert, variableContext);
-        this.javascriptActions = javascriptActions;
+        this.playwrightJavascriptActions = playwrightJavascriptActions;
+        this.softAssert = softAssert;
+        this.variableContext = variableContext;
     }
 
     /**
@@ -47,7 +49,7 @@ public class ExecuteScriptSteps extends AbstractExecuteScriptSteps
     @When("I execute javascript `$jsCode`")
     public void executeJavascript(String jsCode)
     {
-        javascriptActions.executeScript(jsCode);
+        playwrightJavascriptActions.executeScript(jsCode);
     }
 
     /**
@@ -64,35 +66,20 @@ public class ExecuteScriptSteps extends AbstractExecuteScriptSteps
      *                     </ul>
      * @param variableName A name under which the value should be saved
      * @param jsCode       Code in javascript that returns some value as result
-     *                     (e.g. var a=1; return a;)
+     *                     (e.g. JSON.stringify(window.performance.timing))
      */
-    @When(value = "I execute javascript `$jsCode` and save result to $scopes variable `$variableName`", priority = 1)
+    @When("I execute javascript `$jsCode` and save result to $scopes variable `$variableName`")
     public void saveValueFromJS(String jsCode, Set<VariableScope> scopes, String variableName)
     {
-        assertAndSaveResult(() -> javascriptActions.executeScript(jsCode), scopes, variableName);
+        assertAndSaveResult(() -> playwrightJavascriptActions.executeScript(jsCode), scopes, variableName);
     }
 
-    /**
-     * Executes JavaScript code with specified arguments
-     *
-     * @param jsCode JavaScript code
-     * @param args   A table containing JS command argument value and type (one of <i>STRING</i> or <i>OBJECT</i>).
-     *               The parameter is optional and could be omitted.<br>
-     */
-    @When("I execute javascript `$jsCode` with arguments:$args")
-    public void executeJavascriptWithArguments(String jsCode, List<JsArgument> args)
+    private void assertAndSaveResult(Supplier<Object> resultProvider, Set<VariableScope> scopes, String variableName)
     {
-        javascriptActions.executeScript(jsCode, args.stream().map(this::convertRowToArgument).toArray());
-    }
-
-    private Object convertRowToArgument(JsArgument arg)
-    {
-        JsArgumentType type = arg.getType();
-        String value = arg.getValue();
-        if (type == null || value == null)
+        Object result = resultProvider.get();
+        if (softAssert.assertNotNull("Returned result is not null", result))
         {
-            throw new IllegalArgumentException("Please, specify command argument values and types");
+            variableContext.putVariable(scopes, variableName, result);
         }
-        return type.convert(value);
     }
 }
