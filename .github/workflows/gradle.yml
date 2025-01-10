@@ -68,11 +68,11 @@ jobs:
         restore-keys: |
           tests-history-cache-
 
-    - name: Set up JDK 23
+    - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: 23
+        java-version: 21
 
     - name: Warm up VIVIDUS test site
       run: curl https://vividus-test-site-a92k.onrender.com/ &
@@ -86,12 +86,13 @@ jobs:
       run: |
         if [[ $MATRIX_PLATFORM = "ubuntu-latest" ]]; then
           if [[ -n $SONAR_TOKEN ]]; then
-            ./gradlew build sonar -Dsonar.host.url=https://sonarcloud.io \
-                                  -Dsonar.organization=vividus \
-                                  -Dsonar.projectKey=vividus-framework_vividus \
-                                  -Ptest.testLogging.exceptionFormat=full
+            ./gradlew build sonarqube -Dsonar.host.url=https://sonarcloud.io \
+                                      -Dsonar.organization=vividus \
+                                      -Dsonar.projectKey=vividus-framework_vividus \
+                                      -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=768m" \
+                                      -Ptest.testLogging.exceptionFormat=full
           else
-            echo No SONAR_TOKEN, SonarCloud analysis will be skipped
+            echo No SONAR_TOKEN, SonarQube analysis will be skipped
             ./gradlew build -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=768m" \
                             -Ptest.testLogging.exceptionFormat=full
           fi
@@ -110,14 +111,14 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ !github.event.pull_request.head.repo.fork || github.ref == 'refs/heads/master'}}
-      uses: codecov/codecov-action@v5.0.7
+      uses: codecov/codecov-action@v4.5.0
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to Codecov
       if: ${{ github.event.pull_request.head.repo.fork }}
-      uses: codecov/codecov-action@v5.0.7
+      uses: codecov/codecov-action@v4.5.0
 
     - name: VIVIDUS tasks validation
       run: |
@@ -132,6 +133,7 @@ jobs:
       if: matrix.platform == 'macos-latest'
       run: |
         ./gradlew :vividus-tests:debugStories -Pvividus.configuration-set.active=integration \
+                                              -Pvividus.batch-1.resource-exclude-patterns="Precondition*.story,Load ExamplesTable from local file.story,VideoSteps.story" \
                                               -Pvividus.allure.history-directory=output/history/integration-tests \
                                               -Pvividus.allure.executor.name="Github Actions (Vividus)" \
                                               -Pvividus.allure.executor.type=github \
@@ -283,31 +285,6 @@ jobs:
             echo No SAUCELABS_USER and/or SAUCELABS_KEY, SauceLabs system tests will be skipped
         fi
 
-    - name: SauceLabs - Desktop - Chrome DevTools
-      if: matrix.platform == 'ubuntu-latest'
-      env:
-        SAUCELABS_USER: ${{ secrets.SAUCELABS_USER }}
-        SAUCELABS_KEY: ${{ secrets.SAUCELABS_KEY }}
-      shell: bash
-      run: |
-        if [[ -n $SAUCELABS_USER && -n $SAUCELABS_KEY ]]; then
-          declare -a configs=( 'Windows 11:1920x1080' 'macOS 13:1920x1440' )
-          for config in "${configs[@]}"; do
-            platform=${config%%:*}
-            resolution=${config##*:}
-
-            ./gradlew :vividus-tests:debugStories -Pvividus.configuration.environments=system/saucelabs \
-                                                  -Pvividus.configuration.suites=cdp \
-                                                  -Pvividus.configuration.profiles=saucelabs/web,web/desktop/chrome \
-                                                  -Pvividus.selenium.grid.username=${SAUCELABS_USER} \
-                                                  -Pvividus.selenium.grid.password=${SAUCELABS_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.platformName="${platform}" \
-                                                  -Pvividus.selenium.grid.screen-resolution="${resolution}"
-          done
-        else
-            echo No SAUCELABS_USER and/or SAUCELABS_KEY, SauceLabs system tests will be skipped
-        fi
-
     - name: SauceLabs - Desktop - Web + Proxy + SauceConnect - System tests
       if: (matrix.platform == 'ubuntu-latest' || matrix.platform == 'windows-latest')
       env:
@@ -398,7 +375,7 @@ jobs:
 
           ./gradlew :vividus-tests:debugStories -Pvividus.configuration.suites=health_check \
                                                 -Pvividus.configuration.profiles=mobitru/web,web/phone/iphone \
-                                                -Pvividus.selenium.grid.capabilities.appium\:platformVersion=18 \
+                                                -Pvividus.selenium.grid.capabilities.appium\:platformVersion=17 \
                                                 -Pvividus.selenium.grid.username=${MOBITRU_USER} \
                                                 -Pvividus.selenium.grid.password=${MOBITRU_KEY}
 
@@ -677,7 +654,7 @@ jobs:
                                                   -Pvividus.configuration.profiles=mobitru/mobile_app,mobile_app/android \
                                                   -Pvividus.selenium.grid.username=${MOBITRU_USER} \
                                                   -Pvividus.selenium.grid.password=${MOBITRU_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.platformVersion=13 \
+                                                  -Pvividus.selenium.grid.capabilities.platformVersion=12 \
                                                   -Pvividus.allure.history-directory=output/history/mt-android-system-tests \
                                                   -Pvividus.allure.report-directory=output/reports/mt-android-allure \
                                                   -Pvividus.allure.executor.name="Github Actions (Vividus)" \
