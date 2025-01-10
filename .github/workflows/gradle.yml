@@ -111,40 +111,22 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: ${{ !github.event.pull_request.head.repo.fork || github.ref == 'refs/heads/master'}}
-      uses: codecov/codecov-action@v4.3.0
+      uses: codecov/codecov-action@v4.1.0
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to Codecov
       if: ${{ github.event.pull_request.head.repo.fork }}
-      uses: codecov/codecov-action@v4.3.0
+      uses: codecov/codecov-action@v4.1.0
 
     - name: VIVIDUS tasks validation
       run: |
          ./gradlew validateKnownIssues printSteps countSteps -x testVividusInitialization  -p vividus-tests --project-prop 'vividus.variables.iterationLimit=3' --project-prop 'vividus.variables.target-platform=ios'
 
     - name: Integration tests
-      if: (matrix.platform == 'ubuntu-latest' || matrix.platform == 'windows-latest')
       run: |
         ./gradlew :vividus-tests:debugStories --project-prop 'vividus.configuration-set.active=integration' --project-prop 'vividus.allure.history-directory=output/history/integration-tests' --project-prop 'vividus.allure.executor.name="Github Actions (Vividus)"' --project-prop 'vividus.allure.executor.type=github' --project-prop 'vividus.allure.executor.url=https://github.com/vividus-framework/vividus/actions' --project-prop 'vividus.allure.executor.build-order=${GITHUB_RUN_ID}' --project-prop 'vividus.allure.executor.build-name="Integration Tests ${GITHUB_RUN_ID}"' --project-prop 'vividus.allure.executor.build-url=https://github.com/vividus-framework/vividus/actions/runs/${GITHUB_RUN_ID}' --project-prop 'vividus.allure.executor.report-url=https://github.com/vividus-framework/vividus/actions/runs/${GITHUB_RUN_ID}' --project-prop 'vividus.allure.executor.report-name="Integration tests report"' --project-prop "fileToSaveExitCode=$(pwd)/exitCode.txt" --no-daemon
-
-    - name: Integration tests
-      if: matrix.platform == 'macos-latest'
-      run: |
-        ./gradlew :vividus-tests:debugStories -Pvividus.configuration-set.active=integration \
-                                              -Pvividus.batch-1.resource-exclude-patterns="Precondition*.story,Load ExamplesTable from local file.story,VideoSteps.story" \
-                                              -Pvividus.allure.history-directory=output/history/integration-tests \
-                                              -Pvividus.allure.executor.name="Github Actions (Vividus)" \
-                                              -Pvividus.allure.executor.type=github \
-                                              -Pvividus.allure.executor.url=https://github.com/vividus-framework/vividus/actions \
-                                              -Pvividus.allure.executor.build-order=${GITHUB_RUN_ID} \
-                                              -Pvividus.allure.executor.build-name="Integration Tests ${GITHUB_RUN_ID}" \
-                                              -Pvividus.allure.executor.build-url=https://github.com/vividus-framework/vividus/actions/runs/${GITHUB_RUN_ID} \
-                                              -Pvividus.allure.executor.report-url=https://github.com/vividus-framework/vividus/actions/runs/${GITHUB_RUN_ID} \
-                                              -Pvividus.allure.executor.report-name="Integration tests report" \
-                                              -PfileToSaveExitCode=$(pwd)/exitCode.txt --no-daemon
-
 
     - name: Publish integration tests report
       if: always()
@@ -255,12 +237,11 @@ jobs:
         if [[ -n $LAMBDATEST_USER && -n $LAMBDATEST_KEY ]]; then
           declare -a profiles=( iexplore chrome firefox edge safari )
           for profile in "${profiles[@]}"; do
-            ./gradlew :vividus-tests:debugStories -Pvividus.configuration.environments= \
+            ./gradlew :vividus-tests:debugStories -Pvividus.configuration.environments=system/lambdatest \
                                                   -Pvividus.configuration.suites=health_check \
                                                   -Pvividus.configuration.profiles=lambdatest/web,web/desktop/${profile} \
                                                   -Pvividus.selenium.grid.username=${LAMBDATEST_USER} \
-                                                  -Pvividus.selenium.grid.password=${LAMBDATEST_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.LT\:Options.build="VIVIDUS System Tests"
+                                                  -Pvividus.selenium.grid.password=${LAMBDATEST_KEY}
           done
         else
             echo No LAMBDATEST_USER and/or LAMBDATEST_KEY, LambdaTest integration tests will be skipped
@@ -376,7 +357,7 @@ jobs:
 
           ./gradlew :vividus-tests:debugStories -Pvividus.configuration.suites=health_check \
                                                 -Pvividus.configuration.profiles=mobitru/web,web/phone/iphone \
-                                                -Pvividus.selenium.grid.capabilities.appium\:platformVersion=17 \
+                                                -Pvividus.selenium.grid.capabilities.appium\:platformVersion=16.1 \
                                                 -Pvividus.selenium.grid.username=${MOBITRU_USER} \
                                                 -Pvividus.selenium.grid.password=${MOBITRU_KEY}
 
@@ -569,12 +550,11 @@ jobs:
       shell: bash
       run: |
         if [[ -n $BROWSERSTACK_USER && -n $BROWSERSTACK_KEY ]]; then
-            ./gradlew :vividus-tests:debugStories -Pvividus.configuration.environments= \
+            ./gradlew :vividus-tests:debugStories -Pvividus.configuration.environments=system/mobile_app/browserstack/ios \
                                                   -Pvividus.configuration.suites=system/mobile_app/healthcheck/browserstack \
-                                                  -Pvividus.configuration.profiles=browserstack/mobile_app/ios,mobile_app/ios \
+                                                  -Pvividus.configuration.profiles=browserstack/mobile_app,mobile_app/ios \
                                                   -Pvividus.selenium.grid.username=${BROWSERSTACK_USER} \
                                                   -Pvividus.selenium.grid.password=${BROWSERSTACK_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="VIVIDUS iOS System Tests" \
                                                   -Pvividus.allure.history-directory=output/history/bs-ios-system-tests \
                                                   -Pvividus.allure.report-directory=output/reports/bs-ios-allure \
                                                   -Pvividus.allure.executor.name="Github Actions (Vividus)" \
@@ -615,12 +595,11 @@ jobs:
       shell: bash
       run: |
         if [[ -n $BROWSERSTACK_USER && -n $BROWSERSTACK_KEY ]]; then
-            ./gradlew :vividus-tests:debugStories -Pvividus.configuration.environments= \
+            ./gradlew :vividus-tests:debugStories -Pvividus.configuration.environments=system/mobile_app/browserstack/android \
                                                   -Pvividus.configuration.suites=system/mobile_app/healthcheck/browserstack \
-                                                  -Pvividus.configuration.profiles=browserstack/mobile_app/android,mobile_app/android \
+                                                  -Pvividus.configuration.profiles=browserstack/mobile_app,mobile_app/android \
                                                   -Pvividus.selenium.grid.username=${BROWSERSTACK_USER} \
                                                   -Pvividus.selenium.grid.password=${BROWSERSTACK_KEY} \
-                                                  -Pvividus.selenium.grid.capabilities.bstack\:options.buildName="VIVIDUS Android System Tests" \
                                                   -Pvividus.allure.history-directory=output/history/bs-android-system-tests \
                                                   -Pvividus.allure.report-directory=output/reports/bs-android-allure \
                                                   -Pvividus.allure.executor.name="Github Actions (Vividus)" \
@@ -760,8 +739,8 @@ jobs:
         expectedStory="vividus-tests/src/main/resources/story/replacement/ReplacedStepsExpected.story"
         actualComposites="vividus-tests/src/main/resources/steps/replacement/replaced_composites_actual.steps"
         expectedComposites="vividus-tests/src/main/resources/steps/replacement/replaced_composites_expected.steps"
-        cmp "$actualStory" "$expectedStory"
-        cmp "$actualComposites" "$expectedComposites"
+        cmp -c "$actualStory" "$expectedStory"
+        cmp -c "$actualComposites" "$expectedComposites"
 
     - name: Replace and validate deprecated properties
       if: matrix.platform == 'macos-latest'
@@ -770,7 +749,7 @@ jobs:
         ./gradlew :vividus-tests:replaceDeprecatedProperties
         actualProperties="vividus-tests/src/main/resources/properties/environment/system/properties_replacer/actual_properties.properties"
         expectedProperties="vividus-tests/src/main/resources/properties/environment/system/properties_replacer/expected_properties.properties"
-        cmp "$actualProperties" "$expectedProperties"
+        cmp -c "$actualProperties" "$expectedProperties"
 
     - name: Publish artifacts to GitHub packages
       if: (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/release-')) && matrix.platform == 'ubuntu-latest'
